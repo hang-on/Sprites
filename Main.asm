@@ -50,6 +50,9 @@ SetupMain:
     .db 0 0 0 8 8 8
     .db 0 0 8 1 16 2 0 3 8 4 16 5
 
+  RandomBytes:
+    .dbrnd 24,5,170
+
   Main:
     call AwaitFrameInterrupt
 
@@ -58,18 +61,19 @@ SetupMain:
     call GetInputPorts
 
     call BeginMetaSprites
-    ld a,20
-    ld b,20
-    ld hl,SwabbyMetaSprite
-    call AddMetaSprite
-    ld a,40
-    ld b,40
-    ld hl,SwabbyMetaSprite
-    call AddMetaSprite
-    ld a,70
-    ld b,70
-    ld hl,SwabbyMetaSprite
-    call AddMetaSprite
+
+    ld hl,RandomBytes             ; A quick demonstration: Try to put
+    .rept 12                      ; 12 x Swabby on random locations
+      ld a,(hl)                   ; on the screen. Each Swabby takes up
+      inc hl                      ; 6 hardware sprites. So only 10
+      ld b,(hl)                   ; Swabbies will show, because the
+      inc hl                      ; Spritelib's built-in sprite overflow
+      push hl                     ; handler kicks in.
+        ld hl,SwabbyMetaSprite
+        call AddMetaSprite
+      pop hl
+    .endr
+
     call FinalizeMetaSprites
 
     ld hl,FrameCounter

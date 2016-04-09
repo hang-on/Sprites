@@ -1,6 +1,8 @@
 ; *****************************************************************************
 ;                           SPRITE LIBRARY
 ; *****************************************************************************
+; Note: Spritelib depends on constants from Base.inc.
+
 .equ FIRST_FREE_SPRITE 0    ; First sprite controlled by this library.
 .equ Y_MAX 193              ; For quick and dirty clipping.
 
