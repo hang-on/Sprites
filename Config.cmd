@@ -1,3 +1,3 @@
 :: Build configuration file
-SET binary=Binaries\BaseBox.sms
+SET binary=Binaries\Sprites.sms
 SET main=main.asm
