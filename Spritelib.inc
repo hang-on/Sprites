@@ -1,7 +1,8 @@
 ; *****************************************************************************
 ;                           SPRITE LIBRARY
 ; *****************************************************************************
-
+.equ FIRST_FREE_SPRITE 0    ; First sprite controlled by this library.
+.equ Y_MAX 193              ; For quick and dirty clipping.
 
 
 .ramsection "Spritelib Variables" slot 3
@@ -10,6 +11,7 @@
   NextFreeSprite db
   MasterY db
   MasterX db
+  MetaSpriteSize db
 .ends
 ; -----------------------------------------------------------------------------
 .section "LoadSAT" free
@@ -47,108 +49,127 @@
 .ends
 
 ; -----------------------------------------------------------------------------
-.section "MetaSprites" free
+.section "BeginMetaSprites" free
 ; -----------------------------------------------------------------------------
   BeginMetaSprites:
     ; Reset the NextFreeSprite index at the beginning of every frame
     ld a,FIRST_FREE_SPRITE
     ld (NextFreeSprite),a
   ret
-
-FinalizeMetaSprites:
-  ; Put the terminator in the buffer
-  ld de,SpriteBufferY
-  ld a,(NextFreeSprite)
-  add a,e
-  ld e,a
-  ld a,0
-  adc a,d
-  ld d,a
-  ld a,SPRITE_TERMINATOR
-  ld (de),a
-ret
 .ends
 
+; -----------------------------------------------------------------------------
+.section "FinalizeMetaSprites" free
+; -----------------------------------------------------------------------------
+  FinalizeMetaSprites:
+    ; Put the terminator in the buffer
+    ld de,SpriteBufferY
+    ld a,(NextFreeSprite)
+    add a,e
+    ld e,a
+    ld a,0
+    adc a,d
+    ld d,a
+    ld a,SPRITE_TERMINATOR
+    ld (de),a
+  ret
+.ends
+
+; -----------------------------------------------------------------------------
 .section "AddMetaSprite" free
-AddMetaSprite:
-; Entry: NextFreeSprite is the first buffer position.
-; HL = Base address of meta sprite array. First byte is meta sprite size.
-; A = Master Y
-; B = Master X
-; Procedure: First the program processes the Y-offsets. Each offset is
-; applied to the master Y, and the result is saved in SpriteBufferY. Then the
-; X-offsets are processed, and stored pairwise with char codes in SpriteBufferXC
-; Exit: SpriteBufferY and SpriteBufferXC is updated. NextFreeSprite is
-; incremented.
-; Assume master y,x to be top left corner
+; -----------------------------------------------------------------------------
+  AddMetaSprite:
+    ; Entry: NextFreeSprite is the first buffer position.
+    ;        HL = Base address of meta sprite array. First byte is the size of
+    ;        the meta sprite.
+    ;        A = Master Y
+    ;        B = Master X
+    ; Procedure: First the program processes the Y-offsets. Each offset is
+    ; applied to the master Y, and the result is saved in SpriteBufferY. Then
+    ; the X-offsets are processed, and stored pairwise with character codes in
+    ; SpriteBufferXC.
+    ; Exit: SpriteBufferY and SpriteBufferXC is updated. NextFreeSprite is
+    ; incremented.
 
-  ; Save the parameters in ram
-  ld (MasterY),a
-  cp 169 ; just outside lcd area
-  ret nc ; quick and dirty sprite clipping technique
-  ld a,b
-  ld (MasterX),a
+    ; Perform vertical clipping test and save the parameters in ram.
+    ld (MasterY),a
+    cp Y_MAX
+    ret nc                ; Quick and dirty sprite clipping technique.
+    ld a,b
+    ld (MasterX),a
 
-  ; Point DE to SpriteBufferY[NextFreeSprite]
-  ld a,(NextFreeSprite)
-  ld de,SpriteBufferY
-  add a,e
-  ld e,a
-  ld a,0
-  adc a,d
-  ld d,a
+    ; Get size of metasprite and put it in B.
+    ld a,(hl)             ; HL points to size on entry.
+    inc hl                ; Now hl points to first y-offset.
+    ld b,a                ; Put size in B, so we can use DJNZ.
+    ld (MetaSpriteSize),a ; Save the size for later counting jobs.
 
-  ; Get size of metasprite and put it in B
-  ld a,(hl)
-  inc hl ; now hl points to first y-offset
-  ld b,a ; put size in B, so we can use DJNZ
+    ; Test for sprite overflow (more than 64 hardware sprites at once).
+    ld a,(NextFreeSprite)
+    add a,b
+    cp 65
+    ret nc
 
-  ; Apply offsets to MasterY, and save the results in the SpriteBufferY
-  push bc ; save the counter
-  ld a,(MasterY)
-  ld c,a
-  -:
-    ld a,(hl)
-    add a,c
-    ld (de),a
-    inc hl
-    inc de
-  djnz -
-  pop bc ; restore counter in B
+    ; Point DE to SpriteBufferY[NextFreeSprite].
+    ld a,(NextFreeSprite)
+    ld de,SpriteBufferY
+    add a,e
+    ld e,a
+    ld a,0
+    adc a,d
+    ld d,a
 
-  ; Apply offsets to MasterX, and save results, together with charcodes, in
-  ; SpriteBufferXC.
-  ; HL is pointing at the first x-offset. B holds the size.
-  push bc ; save the counter
-  ; First, point DE to SpriteBufferXC[NextFreeSprite]
-  ; Point DE to SpriteBufferY[NextFreeSprite]
-  ld a,(NextFreeSprite)
-  add a,a ; because we are having x,charcode pairs (words) in this buffer.
-  ld de,SpriteBufferXC
-  add a,e
-  ld e,a
-  ld a,0
-  adc a,d
-  ld d,a ; Now, DE is pointing correctly into the SpriteBufferXC
+    ; Apply offsets to MasterY, and write the results to SpriteBufferY.
+    ld a,(MasterY)
+    ld c,a
+    -:
+      ld a,(hl)
+      add a,c
+      cp SPRITE_TERMINATOR
+      jp nz,+
+        inc a
+      +:
+      ld (de),a
+      inc hl
+      inc de
+    djnz -
 
-  ld a,(MasterX)
-  ld c,a
-  -:
-    ld a,(hl)
-    add a,c
-    ld (de),a
-    inc hl
-    inc de
-    ld a,(hl) ; get the char code
-    ld (de),a
-    inc hl
-    inc de
-  djnz -
+    ; Apply offsets to MasterX, and save results, together with charcodes, in
+    ; SpriteBufferXC. HL points to the first x-offset.
 
-  pop bc ; restore counter
-  ld a,(NextFreeSprite) ; add the size of the processed metasprite
-  add a,b
-  ld (NextFreeSprite),a
+    ; Point DE to SpriteBufferY[NextFreeSprite]
+    ld a,(NextFreeSprite) ; Double the buffer index because this is a buffer
+    add a,a               ; word-sized elements  (x + charcode pairs).
+    ld de,SpriteBufferXC
+    add a,e               ; Calculate offset using 8-bit math to avoid
+    ld e,a                ; disturbing HL and B.
+    ld a,0
+    adc a,d               ; Apply a possible carry from LSB above.
+    ld d,a                ; Now, DE is pointing correctly into SpriteBufferXC.
 
-ret
+    ; Apply offsets to MasterX and write results together with charcodes.
+    ld a,(MasterX)
+    ld c,a
+    ld a,(MetaSpriteSize) ; Retrieve size and store it in B for counting.
+    ld b,a
+    -:
+      ; First byte: X.
+      ld a,(hl)           ; Get the offset.
+      add a,c             ; Apply MasterX to this offset.
+      ld (de),a           ; Save it in buffer.
+      inc hl              ; Forward both source and destination pointers...
+      inc de
+
+      ; Second byte: Character code.
+      ld a,(hl)           ; Get the char code.
+      ld (de),a           ; Save it directly in buffer.
+      inc hl              ; Forward the pointers again...
+      inc de
+    djnz -
+
+    ld hl,MetaSpriteSize
+    ld a,(NextFreeSprite) ; add the size of the processed metasprite
+    add a,(hl)
+    ld (NextFreeSprite),a
+  ret
 .ends
