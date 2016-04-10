@@ -21,9 +21,9 @@
   ; Exit: A = Table index assigned to this object.
   ; Uses: AF,B,DE,HL,IX
   CreateObject:
-    ; Search for the next free object in OAT (from last to first element).
-    ld ix,ObjectAttributeTable+256-16
-    ld b,16
+    ; Search for the next free object in OAT
+    ld ix,ObjectAttributeTable
+    ld b,0
     -:
       ld a,(ix+0)
       or a                  ; Zero means object is idle.
@@ -33,9 +33,12 @@
         ld a,b              ; Return with A holding the index.
         ret
       +:
-      ld de,-16
+      ld de,16
       add ix,de
-    djnz -
+      inc b
+      ld a,b
+      cp 16
+    jp nz,-
     scf                      ; Set carry to indicate error.
   ret
 
@@ -61,6 +64,31 @@
 .ends
 
 ; -----------------------------------------------------------------------------
+.section "DestroyObject" free
+; -----------------------------------------------------------------------------
+  ; Detroys an object.
+  ; Entry: A = Handle of object to destroy.
+  ; Uses: AF,B,HL
+  DestroyObject:
+    ld hl,ObjectAttributeTable
+    ld de,16
+    ld b,a
+    xor a
+    cp b
+    jp z,+
+      -:
+        add hl,de
+        inc a
+        cp b
+      jp nz,-
+    +:
+    xor a             ; Write zero to signal that this obj. is now 'idle'.
+    ld (hl),a
+  ret
+.ends
+
+
+; -----------------------------------------------------------------------------
 .section "ObjectFrame" free
 ; -----------------------------------------------------------------------------
   ; Frame-by-frame housekeeping of the objects.
@@ -79,15 +107,18 @@
   ; Search for the next free object in OAT (from last to first element).
   DrawObjects:
     call BeginMetaSprites
-    ld ix,ObjectAttributeTable+256-16
-    ld b,16
+    ld ix,ObjectAttributeTable
+    ld b,0
     -:
       ld a,(ix+0)
       or a                  ; Zero means object is idle.
       call nz,_DrawObject
       ld de,-16
       add ix,de
-    djnz -
+      inc b
+      ld a,b
+      cp 16
+    jp nz,-
     call FinalizeMetaSprites
   ret
 
