@@ -71,22 +71,18 @@
   ; Uses: AF,B,HL
   DestroyObject:
     ld hl,ObjectAttributeTable
+    cp 0
+    jp z,+
     ld de,16
     ld b,a
-    xor a
-    cp b
-    jp z,+
-      -:
-        add hl,de
-        inc a
-        cp b
-      jp nz,-
+    -:
+      add hl,de
+    djnz -
     +:
     xor a             ; Write zero to signal that this obj. is now 'idle'.
     ld (hl),a
   ret
 .ends
-
 
 ; -----------------------------------------------------------------------------
 .section "ObjectFrame" free
@@ -105,6 +101,7 @@
 ; -----------------------------------------------------------------------------
   ; Utilize the Spritelib for drawing the active objects' metasprites.
   ; Search for the next free object in OAT (from last to first element).
+  ; Uses: AF,B,DE,HL,IX
   DrawObjects:
     call BeginMetaSprites
     ld ix,ObjectAttributeTable
