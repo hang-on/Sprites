@@ -11,6 +11,7 @@
     ; 3-4  : MetaSpritePointer
     ; 5-15 : Reserved
 .ends
+
 ; -----------------------------------------------------------------------------
 .section "CreateObject" free
 ; -----------------------------------------------------------------------------
@@ -18,42 +19,87 @@
   ; string pointed to by HL.
   ; Entry: HL = Pointer to object initialization data.
   ; Exit: A = Table index assigned to this object.
+  ; Uses: AF,B,DE,HL,IX
   CreateObject:
-    ; Search for the next free object in OAT
+    ; Search for the next free object in OAT (from last to first element).
     ld ix,ObjectAttributeTable+256-16
     ld b,16
     -:
       ld a,(ix+0)
-      or a
+      or a                  ; Zero means object is idle.
       jp nz,+
         call _LoadElement
-        ; ld a,handle
-        ; reset carry = no error
+        or a                ; Clear carry (operation successful).
+        ld a,b              ; Return with A holding the index.
         ret
       +:
       ld de,-16
       add ix,de
     djnz -
-    ; fall through to something with set carry = error
+    scf                      ; Set carry to indicate error.
   ret
 
   _LoadElement:
     ; Entry: IX = Pointer to first byte in object table element.
     ;        HL = Pointer to initialization data.
     ; Exit:  A = ObjectHandle (the object's index in OAT).
-    ld a,(hl)
+    ; Uses AF,HL,IX - cannot use B!
+    ld a,1        ; Switch from idle to active.
+    ld (ix+0),a
+    ld a,(hl)     ; Get Y position.
     ld (ix+1),a
     inc hl
-    ld a,(hl)
+    ld a,(hl)     ; Get X position.
     ld (ix+2),a
     inc hl
-    ld a,(hl)
+    ld a,(hl)     ; Get LSB and MSB of MetaSpritePointer.
     ld (ix+3),a
     inc hl
     ld a,(hl)
     ld (ix+4),a
-    ld a,b        ; Return with A holding the index.
   ret
 .ends
 
-; We will also need an Objectframe and ObjectInit ...
+; -----------------------------------------------------------------------------
+.section "ObjectFrame" free
+; -----------------------------------------------------------------------------
+  ; Frame-by-frame housekeeping of the objects.
+  ObjectFrame:
+    ; Start with animation, etc...
+
+    ; Finish by drawing the objects as they look by now.
+    call DrawObjects
+  ret
+.ends
+
+; -----------------------------------------------------------------------------
+.section "DrawObjects" free
+; -----------------------------------------------------------------------------
+  ; Utilize the Spritelib for drawing the active objects' metasprites.
+  ; Search for the next free object in OAT (from last to first element).
+  DrawObjects:
+    call BeginMetaSprites
+    ld ix,ObjectAttributeTable+256-16
+    ld b,16
+    -:
+      ld a,(ix+0)
+      or a                  ; Zero means object is idle.
+      call nz,_DrawObject
+      ld de,-16
+      add ix,de
+    djnz -
+    call FinalizeMetaSprites
+  ret
+
+  _DrawObject:
+    ; Entry: IX = Pointer to OAT element.
+    ; Uses: AF,HL,IX (must preserve B!)
+    push bc
+      ld l,(ix+3)
+      ld h,(ix+4)
+      ld a,(ix+1)
+      ld b,(ix+2)
+      call AddMetaSprite
+    pop bc
+  ret
+.ends

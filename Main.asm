@@ -25,6 +25,10 @@
     .db 20 40
     .dw SwabbyMetaSprite
 
+  AlternativeSwabbyInitString:
+    .db 100 150
+    .dw SwabbyMetaSprite
+
 
 SetupMain:
   ld a,0
@@ -42,6 +46,8 @@ SetupMain:
   call LoadVRam
 
   ld hl,SwabbyInitString
+  call CreateObject
+  ld hl,AlternativeSwabbyInitString
   call CreateObject
 
   ld a,ENABLE_DISPLAY_ENABLE_FRAME_INTERRUPTS_NORMAL_SPRITES
@@ -61,8 +67,10 @@ SetupMain:
 ; -----------------------------------------------------------------------------
   Main:
     call AwaitFrameInterrupt
+    call LoadSAT
 
     call GetInputPorts
+    call ObjectFrame
 
     ld hl,FrameCounter
     inc (hl)
