@@ -108,29 +108,23 @@
   DrawObjects:
     call BeginMetaSprites
     ld ix,ObjectAttributeTable
-    ld b,0
-    -:
+    .rept 16
       ld a,(ix+0)
       or a                  ; Zero means object is idle.
       call nz,_DrawObject
-      ld de,-16
+      ld de,16
       add ix,de
-      inc b
-      ld a,b
-      cp 16
-    jp nz,-
+    .endr
     call FinalizeMetaSprites
   ret
 
   _DrawObject:
     ; Entry: IX = Pointer to OAT element.
-    ; Uses: AF,HL,IX (must preserve B!)
-    push bc
-      ld l,(ix+3)
-      ld h,(ix+4)
-      ld a,(ix+1)
-      ld b,(ix+2)
-      call AddMetaSprite
-    pop bc
+    ; Uses: AF,B,HL,IX
+    ld l,(ix+3)
+    ld h,(ix+4)
+    ld a,(ix+1)
+    ld b,(ix+2)
+    call AddMetaSprite
   ret
 .ends
