@@ -43,6 +43,7 @@
 .ramsection "Main variables" slot 3
   FrameCounter db
   PlayerObjectHandle db
+  NextEventIndex db
 .ends
 ; -----------------------------------------------------------------------------
 .section "Main" free
@@ -56,26 +57,27 @@
     .db 20 40
     .dw SwabbyMetaSprite
 
+  _EventTable:
+    .dw _Event0 _Event1
+  _EventTableEnd:
+    _Event0:
+      ld hl,SwabbyInitString
+      call CreateObject
+      ld (PlayerObjectHandle),a
+      jp _EndEvents
+    _Event1:
+      ld a,(PlayerObjectHandle)
+      call DestroyObject
+      jp _EndEvents
+
   Main:
     call AwaitFrameInterrupt
     call LoadSAT
 
     ld a,(FrameCounter)
-    cp 0
-    jp nz,+
-      ld hl,SwabbyInitString
-      call CreateObject
-      call c,_ObjectOverflow
-      ld (PlayerObjectHandle),a
-      jp ++
-    +:
-    cp 127
-    jp nz,++
-      ld a,(PlayerObjectHandle)
-      call DestroyObject
-    ++:
-    ld hl,FrameCounter
-    inc (hl)
+    inc a
+    ld (FrameCounter),a
+    call z,_MakeEvent
 
     call GetInputPorts
 
@@ -88,4 +90,27 @@
     nop
   jp _ObjectOverflow
 
+  _MakeEvent:
+    ld a,(NextEventIndex)
+    add a,a
+    ld d,0
+    ld e,a
+    ld hl,_EventTable
+    add hl,de
+    ld a,(hl)
+    inc hl
+    ld h,(hl)
+    ld l,a
+    jp (hl)
+    ; Refer to event table in the data section above.
+    ; .... when the event is over, we jump back to _EndEvents below.
+  _EndEvents:
+    ld a,(NextEventIndex)
+    cp ((_EventTableEnd-_EventTable)/2)-1
+    jp nz,+
+      ld a,-1
+    +:
+    inc a
+    ld (NextEventIndex),a
+  ret
 .ends
