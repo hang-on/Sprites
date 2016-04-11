@@ -12,6 +12,12 @@
   SwabbyTiles:
     .include "Data/Swabby-Tiles.inc"
   SwabbyTilesEnd:
+  GargoyleTiles:
+    .include "Data/Gargoyle-Tiles.inc"
+  GargoyleTilesEnd:
+  ZombieTiles:
+    .include "Data/Zombie-Tiles.inc"
+  ZombieTilesEnd:
 
   BackgroundPalette:
     .db $35
@@ -29,6 +35,12 @@
     ld hl,SwabbyTiles
     ld de,$2000
     ld bc,SwabbyTilesEnd-SwabbyTiles
+    call LoadVRam                         ; Will exit with DE pointing to next
+    ld hl,GargoyleTiles                   ; free byte in vram.
+    ld bc,GargoyleTilesEnd-GargoyleTiles
+    call LoadVRam
+    ld hl,ZombieTiles
+    ld bc,ZombieTilesEnd-ZombieTiles
     call LoadVRam
 
     ld a,ENABLE_DISPLAY_ENABLE_FRAME_INTERRUPTS_NORMAL_SPRITES
