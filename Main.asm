@@ -58,7 +58,7 @@
     .dw SwabbyMetaSprite
 
   _EventTable:
-    .dw _Event0 _Event1
+    .dw _Event0 _Event1 _Event2
   _EventTableEnd:
     _Event0:
       ld hl,SwabbyInitString
@@ -68,6 +68,9 @@
     _Event1:
       ld a,(PlayerObjectHandle)
       call DestroyObject
+      jp _EndEvents
+    _Event2:
+      nop ; Do nothing... (event handler loops on this last element).
       jp _EndEvents
 
   Main:
@@ -84,11 +87,6 @@
     call ObjectFrame
 
   jp Main
-
-  _ObjectOverflow:
-    ; Trap error.
-    nop
-  jp _ObjectOverflow
 
   _MakeEvent:
     ld a,(NextEventIndex)
@@ -107,9 +105,7 @@
   _EndEvents:
     ld a,(NextEventIndex)
     cp ((_EventTableEnd-_EventTable)/2)-1
-    jp nz,+
-      ld a,-1
-    +:
+    ret z
     inc a
     ld (NextEventIndex),a
   ret
