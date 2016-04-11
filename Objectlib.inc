@@ -53,30 +53,7 @@
     scf                      ; Set carry to indicate error.
   ret
 
-  _LoadElement:
-    ; Entry: IX = Pointer to first byte in object table element.
-    ;        HL = Pointer to initialization data.
-    ; Exit:
-    ; Uses AF,HL,IX - cannot use B!
-    ld a,1        ; Switch from idle to active.
-    ld (ix+0),a
-    ld a,(hl)     ; Get Y position.
-    ld (ix+1),a
-    inc hl
-    ld a,(hl)     ; Get X position.
-    ld (ix+2),a
-    inc hl
-    ld a,(hl)     ; Get LSB and MSB of MetaSpritePointer.
-    ld (ix+3),a
-    inc hl
-    ld a,(hl)
-    ld (ix+4),a
-  ret
-
   _LoadElementProto:
-    ld a,1
-    ld (ix+0),a
-    inc ix
     push ix
     pop de
     .rept 15
@@ -112,6 +89,7 @@
   ; Frame-by-frame housekeeping of the objects.
   ObjectFrame:
     ; Start with animation, etc...
+    call MoveObjects
 
     ; Finish by drawing the objects as they look by now.
     call DrawObjects
@@ -145,5 +123,26 @@
     ld a,(ix+1)
     ld b,(ix+2)
     call AddMetaSprite
+  ret
+.ends
+
+; -----------------------------------------------------------------------------
+.section "MoveObjects" free
+; -----------------------------------------------------------------------------
+  ; Process all objects. If an object is active, handle its movement with
+  ; settings in Movement, Vertical and Horizontal speed.
+  MoveObjects:
+    ld hl,ObjectAttributeTable
+    .rept 16
+      ld a,(hl)
+      or a                  ; Zero means object is idle.
+      call nz,_MoveObject
+      ld de,16
+      add hl,de
+    .endr
+  ret
+
+  _MoveObject:
+  ; Entry: HL = Base address of active OAT element.
   ret
 .ends

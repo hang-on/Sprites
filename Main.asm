@@ -6,7 +6,7 @@
 .section "SetupMain" free
 ; -----------------------------------------------------------------------------
   SpritePalette:
-    .include "Data\Sprite-Palette.inc"
+    .include "Data/Sprite-Palette.inc"
   SpritePaletteEnd:
 
   SwabbyTiles:
@@ -54,6 +54,7 @@
     .db 0 0 8 1 16 2 0 3 8 4 16 5
 
   SwabbyInitString:
+    .db 1                     ; Initial status.
     .db 20 40                 ; Start Y and start X.
     .dw SwabbyMetaSprite      ; MetaSpritePointer.
     .db 0 0 0                 ; Movement type, vertical and horizontal speed.

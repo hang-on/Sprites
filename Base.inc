@@ -407,8 +407,12 @@
   ; Entry: BC = Number of bytes to load
   ;        DE = Destination address in vram
   ;        HL = Source address
-  ; Uses: AF, BC, DE, HL
+  ; Exit:  DE = Next free byte in vram.
+  ; Uses: AF, BC, DE, HL, IX
   LoadVRam:
+    push de
+    pop ix
+    add ix,bc
     ld a,e
     out (CONTROL_PORT),a
     ld a,d
@@ -422,6 +426,8 @@
       ld a,c
       or b
     jp nz,-
+    push ix
+    pop de
   ret
 .ends
 
