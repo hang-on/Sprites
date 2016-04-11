@@ -54,8 +54,9 @@
     .db 0 0 8 1 16 2 0 3 8 4 16 5
 
   SwabbyInitString:
-    .db 20 40
-    .dw SwabbyMetaSprite
+    .db 20 40                 ; Start Y and start X.
+    .dw SwabbyMetaSprite      ; MetaSpritePointer.
+    .db 0 0 0                 ; Movement type, vertical and horizontal speed.
 
   _EventTable:
     .dw _Event0 _Event1 _Event2
@@ -66,9 +67,9 @@
       ld (PlayerObjectHandle),a
       jp _EndEvents
     _Event1:
-      ld a,(PlayerObjectHandle)
-      call DestroyObject
-      jp _EndEvents
+      ;ld a,(PlayerObjectHandle)
+      ;call DestroyObject
+      ;jp _EndEvents
     _Event2:
       nop ; Do nothing... (event handler loops on this last element).
       jp _EndEvents

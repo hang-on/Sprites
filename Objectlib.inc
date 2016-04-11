@@ -3,13 +3,23 @@
 ; *****************************************************************************
 ; Note: It builds on top of the Spritelib.
 
+; Definitions for object's movement type.
+.equ STATIC     0
+.equ JOYSTICK_1 1
+.equ JOYSTICK_2 2
+.equ VERTICAL   3
+.equ HORIZONTAL 4
+
 .ramsection "Objectlib Variables" slot 3
   ObjectAttributeTable dsb 256 ; 16 objects, 16 bytes each. Abbrev. OAT.
     ; 0: Status
     ; 1    : Y
     ; 2    : X
     ; 3-4  : MetaSpritePointer
-    ; 5-15 : Reserved
+    ; 5    : Movement
+    ; 6    : Vertical speed
+    ; 7    : Horizontal speed
+    ; 8-15 : Reserved
 .ends
 
 ; -----------------------------------------------------------------------------
@@ -28,7 +38,8 @@
       ld a,(ix+0)
       or a                  ; Zero means object is idle.
       jp nz,+
-        call _LoadElement
+        ;call _LoadElement
+        call _LoadElementProto
         or a                ; Clear carry (operation successful).
         ld a,b              ; Return with A holding the index.
         ret
@@ -45,7 +56,7 @@
   _LoadElement:
     ; Entry: IX = Pointer to first byte in object table element.
     ;        HL = Pointer to initialization data.
-    ; Exit:  A = ObjectHandle (the object's index in OAT).
+    ; Exit:
     ; Uses AF,HL,IX - cannot use B!
     ld a,1        ; Switch from idle to active.
     ld (ix+0),a
@@ -60,6 +71,17 @@
     inc hl
     ld a,(hl)
     ld (ix+4),a
+  ret
+
+  _LoadElementProto:
+    ld a,1
+    ld (ix+0),a
+    inc ix
+    push ix
+    pop de
+    .rept 15
+      ldi
+    .endr
   ret
 .ends
 
