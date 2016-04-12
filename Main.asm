@@ -9,18 +9,14 @@
     .include "Data/Sprite-Palette.inc"
   SpritePaletteEnd:
 
-  SwabbyTiles:
-    .include "Data/Swabby-Tiles.inc"
-  SwabbyTilesEnd:
-  GargoyleTiles:
-    .include "Data/Gargoyle-Tiles.inc"
-  GargoyleTilesEnd:
-  ZombieTiles:
-    .include "Data/Zombie-Tiles.inc"
-  ZombieTilesEnd:
-
   BackgroundPalette:
     .db $35
+
+  SpriteTilesBegin:
+    .include "Data/Swabby-Tiles.inc"
+    .include "Data/Gargoyle-Tiles.inc"
+    .include "Data/Zombie-Tiles.inc"
+  SpriteTilesEnd:
 
   SetupMain:
     ld a,0
@@ -32,15 +28,9 @@
     ld hl,SpritePalette
     call LoadCRam
 
-    ld hl,SwabbyTiles
+    ld hl,SpriteTilesBegin
     ld de,$2000
-    ld bc,SwabbyTilesEnd-SwabbyTiles
-    call LoadVRam                         ; Will exit with DE pointing to next
-    ld hl,GargoyleTiles                   ; free byte in vram.
-    ld bc,GargoyleTilesEnd-GargoyleTiles
-    call LoadVRam
-    ld hl,ZombieTiles
-    ld bc,ZombieTilesEnd-ZombieTiles
+    ld bc,SpriteTilesEnd-SpriteTilesBegin
     call LoadVRam
 
     ld a,ENABLE_DISPLAY_ENABLE_FRAME_INTERRUPTS_NORMAL_SPRITES
