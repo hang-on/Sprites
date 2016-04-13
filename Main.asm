@@ -89,7 +89,7 @@
     .db 1                     ; Initial status.
     .db 20 40                 ; Start Y and start X.
     .dw Swabby1               ; MetaSpritePointer.
-    .db 0 0 0                 ; Movement type, vertical and horizontal speed.
+    .db JOYSTICK_1 1 2        ; Movement type, vertical and horizontal speed.
 
   GargoyleInitString:
     .db 1
@@ -102,26 +102,6 @@
     .db 120 120
     .dw Zombie1
     .db 0 0 0
-
-  _EventTable:
-    .dw _Event0 _Event1 _Event2
-  _EventTableEnd:
-    _Event0:
-      ld hl,SwabbyInitString
-      call CreateObject
-      ld (PlayerHandle),a
-      jp _EndEvents
-    _Event1:
-      ld hl,GargoyleInitString
-      call CreateObject
-      ld (GargoyleHandle),a
-      ld hl,ZombieInitString
-      call CreateObject
-      ld (ZombieHandle),a
-      jp _EndEvents
-    _Event2:
-      nop ; Do nothing... (event handler loops on this last element).
-      jp _EndEvents
 
   SetupMain:
     ld a,0
@@ -197,4 +177,25 @@
     inc a
     ld (NextEventIndex),a
   ret
+
+  _EventTable:
+    .dw _Event0 _Event1 _Event2
+  _EventTableEnd:
+    _Event0:
+      ld hl,SwabbyInitString
+      call CreateObject
+      ld (PlayerHandle),a
+      jp _EndEvents
+    _Event1:
+      ld hl,GargoyleInitString
+      call CreateObject
+      ld (GargoyleHandle),a
+      ld hl,ZombieInitString
+      call CreateObject
+      ld (ZombieHandle),a
+      jp _EndEvents
+    _Event2:
+      nop ; Do nothing... (event handler loops on this last element).
+      jp _EndEvents
+
 .ends

@@ -144,5 +144,37 @@
 
   _MoveObject:
   ; Entry: HL = Base address of active OAT element.
+    push hl
+    pop ix
+    ld a,(ix+5)
+    cp JOYSTICK_1
+    ret nz
+
+    call IsPlayer1RightPressed
+    jp nc,+
+      ld a,(ix+7)
+      add a,(ix+2)
+      ld (ix+2),a
+    +:
+    call IsPlayer1LeftPressed
+    jp nc,+
+      ld a,(ix+2)
+      sub (ix+7)
+      ld (ix+2),a
+    +:
+    call IsPlayer1UpPressed
+    jp nc,+
+      ld a,(ix+1)
+      sub (ix+6)
+      ld (ix+1),a
+    +:
+    call IsPlayer1DownPressed
+    jp nc,+
+      ld a,(ix+1)
+      add a,(ix+6)
+      ld (ix+1),a
+    +:
+
+
   ret
 .ends
