@@ -7,8 +7,8 @@
 .equ STATIC     0
 .equ JOYSTICK_1 1
 .equ JOYSTICK_2 2
-.equ VERTICAL   3
-.equ HORIZONTAL 4
+.equ SIMPLE_MOVEMENT   3
+
 
 .ramsection "Objectlib Variables" slot 3
   ObjectAttributeTable dsb 256 ; 16 objects, 16 bytes each. Abbrev. OAT.
@@ -144,37 +144,95 @@
 
   _MoveObject:
   ; Entry: HL = Base address of active OAT element.
+  ; HL is saved.
+    push hl
     push hl
     pop ix
     ld a,(ix+5)
-    cp JOYSTICK_1
-    ret nz
+    add a,a
+    ld d,0
+    ld e,a
+    ld hl,_MovementTable
+    add hl,de
+    ld a,(hl)
+    inc hl
+    ld h,(hl)
+    ld l,a
+    jp (hl)
 
-    call IsPlayer1RightPressed
-    jp nc,+
-      ld a,(ix+7)
-      add a,(ix+2)
-      ld (ix+2),a
-    +:
-    call IsPlayer1LeftPressed
-    jp nc,+
-      ld a,(ix+2)
-      sub (ix+7)
-      ld (ix+2),a
-    +:
-    call IsPlayer1UpPressed
-    jp nc,+
-      ld a,(ix+1)
-      sub (ix+6)
-      ld (ix+1),a
-    +:
-    call IsPlayer1DownPressed
-    jp nc,+
+    _MovementTable:
+      .dw _Static, _Joystick1Controlled, _Joystick2Controlled
+      .dw _SimpleMovement
+
+    _Static:
+      jp _EndSwitch
+
+    _Joystick1Controlled:
+      call IsPlayer1RightPressed
+      jp nc,+
+        ld a,(ix+7)
+        add a,(ix+2)
+        ld (ix+2),a
+      +:
+      call IsPlayer1LeftPressed
+      jp nc,+
+        ld a,(ix+2)
+        sub (ix+7)
+        ld (ix+2),a
+      +:
+      call IsPlayer1UpPressed
+      jp nc,+
+        ld a,(ix+1)
+        sub (ix+6)
+        ld (ix+1),a
+      +:
+      call IsPlayer1DownPressed
+      jp nc,+
+        ld a,(ix+1)
+        add a,(ix+6)
+        ld (ix+1),a
+      +:
+    jp _EndSwitch
+
+    _Joystick2Controlled:
+      call IsPlayer2RightPressed
+      jp nc,+
+        ld a,(ix+7)
+        add a,(ix+2)
+        ld (ix+2),a
+      +:
+      call IsPlayer2LeftPressed
+      jp nc,+
+        ld a,(ix+2)
+        sub (ix+7)
+        ld (ix+2),a
+      +:
+      call IsPlayer2UpPressed
+      jp nc,+
+        ld a,(ix+1)
+        sub (ix+6)
+        ld (ix+1),a
+      +:
+      call IsPlayer2DownPressed
+      jp nc,+
+        ld a,(ix+1)
+        add a,(ix+6)
+        ld (ix+1),a
+      +:
+    jp _EndSwitch
+
+    _SimpleMovement:
+      ; Simply apply the vertical and horizontal speed to y and x...
       ld a,(ix+1)
       add a,(ix+6)
       ld (ix+1),a
-    +:
+      ld a,(ix+2)
+      add a,(ix+7)
+      ld (ix+2),a
+    jp _EndSwitch
 
-
+    _EndSwitch:
+      pop hl
   ret
+
 .ends

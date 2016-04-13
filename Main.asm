@@ -95,13 +95,13 @@
     .db 1
     .db 50 50
     .dw Gargoyle1
-    .db 0 0 0
+    .db JOYSTICK_2 2 2
 
   ZombieInitString:
     .db 1
     .db 120 120
     .dw Zombie1
-    .db 0 0 0
+    .db SIMPLE_MOVEMENT, 1, 1
 
   SetupMain:
     ld a,0
