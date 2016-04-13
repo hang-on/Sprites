@@ -103,8 +103,6 @@
     .dw Zombie1
     .db 0 0 0
 
-
-
   _EventTable:
     .dw _Event0 _Event1 _Event2
   _EventTableEnd:
