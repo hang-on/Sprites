@@ -2,8 +2,16 @@
 .include "Spritelib.inc"
 .include "Objectlib.inc"
 
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+.ramsection "Main variables" slot 3
+  FrameCounter db
+  PlayerHandle db
+  GargoyleHandle db
+  ZombieHandle db
+  NextEventIndex db
+.ends
 ; -----------------------------------------------------------------------------
-.section "SetupMain" free
+.section "Main" free
 ; -----------------------------------------------------------------------------
   SpritePalette:
     .include "Data/Sprite-Palette.inc"
@@ -17,6 +25,59 @@
     .include "Data/Gargoyle-Tiles.inc"
     .include "Data/Zombie-Tiles.inc"
   SpriteTilesEnd:
+
+  SwabbyMetaSprite:
+    .db 6
+    .db -4, -4, -4, 4, 4, 4
+    .db -8, 0, 0, 1, 8, 2, -8, 3, 0, 4, 8, 5
+
+  GargoyleMetaSprite:
+    .db 4
+    .db 0 0 8 8
+    .db 0 18 8 19 0 20 8 21
+
+  ZombieMetaSprite:
+    .db 6
+    .db 0 0 8 8 16 16
+    .db 0 26 8 27 0 28 8 29 0 30 8 31
+
+  SwabbyInitString:
+    .db 1                     ; Initial status.
+    .db 20 40                 ; Start Y and start X.
+    .dw SwabbyMetaSprite      ; MetaSpritePointer.
+    .db 0 0 0                 ; Movement type, vertical and horizontal speed.
+
+  GargoyleInitString:
+    .db 1
+    .db 50 50
+    .dw GargoyleMetaSprite
+    .db 0 0 0
+
+  ZombieInitString:
+    .db 1
+    .db 120 120
+    .dw ZombieMetaSprite
+    .db 0 0 0
+
+  _EventTable:
+    .dw _Event0 _Event1 _Event2
+  _EventTableEnd:
+    _Event0:
+      ld hl,SwabbyInitString
+      call CreateObject
+      ld (PlayerHandle),a
+      jp _EndEvents
+    _Event1:
+      ld hl,GargoyleInitString
+      call CreateObject
+      ld (GargoyleHandle),a
+      ld hl,ZombieInitString
+      call CreateObject
+      ld (ZombieHandle),a
+      jp _EndEvents
+    _Event2:
+      nop ; Do nothing... (event handler loops on this last element).
+      jp _EndEvents
 
   SetupMain:
     ld a,0
@@ -38,44 +99,8 @@
     call SetRegister
     ei
     call AwaitFrameInterrupt
-  jp Main
-.ends
 
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-.ramsection "Main variables" slot 3
-  FrameCounter db
-  PlayerObjectHandle db
-  NextEventIndex db
-.ends
-; -----------------------------------------------------------------------------
-.section "Main" free
-; -----------------------------------------------------------------------------
-  SwabbyMetaSprite:
-    .db 6
-    .db 0 0 0 8 8 8
-    .db 0 0 8 1 16 2 0 3 8 4 16 5
-
-  SwabbyInitString:
-    .db 1                     ; Initial status.
-    .db 20 40                 ; Start Y and start X.
-    .dw SwabbyMetaSprite      ; MetaSpritePointer.
-    .db 0 0 0                 ; Movement type, vertical and horizontal speed.
-
-  _EventTable:
-    .dw _Event0 _Event1 _Event2
-  _EventTableEnd:
-    _Event0:
-      ld hl,SwabbyInitString
-      call CreateObject
-      ld (PlayerObjectHandle),a
-      jp _EndEvents
-    _Event1:
-      ;ld a,(PlayerObjectHandle)
-      ;call DestroyObject
-      ;jp _EndEvents
-    _Event2:
-      nop ; Do nothing... (event handler loops on this last element).
-      jp _EndEvents
+    ; Fall through to main loop...?
 
   Main:
     call AwaitFrameInterrupt
