@@ -22,12 +22,12 @@
     SpritePaletteEnd:
 
   ; Tilebank 2 map:
-  .equ PLAYER_TILES_START $2000
+  .equ PLAYER_1_TILES_START $2000
   .equ ENEMY_1_TILES_START $2400
   .equ ENEMY_2_TILES_START $2600
 
   ; Make character code indexes for the meta sprite data blocks.
-  .equ P1 (PLAYER_TILES_START-$2000)/32
+  .equ P1 (PLAYER_1_TILES_START-$2000)/32
   .equ E1 (ENEMY_1_TILES_START-$2000)/32
   .equ E2 (ENEMY_2_TILES_START-$2000)/32
 
@@ -43,16 +43,11 @@
 
   BatchLoadTable:
     .db (BatchLoadTableEnd-BatchLoadTable-1)/6
-    .dw SwabbyTiles PLAYER_TILES_START SwabbyTilesEnd-SwabbyTiles
+    .dw SwabbyTiles PLAYER_1_TILES_START SwabbyTilesEnd-SwabbyTiles
     .dw GargoyleTiles ENEMY_1_TILES_START GargoyleTilesEnd-GargoyleTiles
     .dw ZombieTiles ENEMY_2_TILES_START ZombieTilesEnd-ZombieTiles
   BatchLoadTableEnd:
 
-  SwabbyInitString:
-    .db 1                     ; Initial status.
-    .db 20 40                 ; Start Y and start X.
-    .dw SwabbyFlying3         ; MetaSpritePointer.
-    .db 0 0 0                 ; Movement type, vertical and horizontal speed.
   SwabbyFlying1:
     .db 6
     .db -4, -4, -4, 4, 4, 4
@@ -65,26 +60,55 @@
     .db 6
     .db -4, -4, -4, 4, 4, 4
     .db -8, P1+12, 0, P1+13, 8, P1+14, -8, P1+15, 0, P1+16, 8, P1+17
+  SwabbyInitString:
+    .db 1                     ; Initial status.
+    .db 20 40                 ; Start Y and start X.
+    .dw SwabbyFlying3         ; MetaSpritePointer.
+    .db 0 0 0                 ; Movement type, vertical and horizontal speed.
 
-  GargoyleInitString:
-    .db 1
-    .db 50 50
-    .dw GargoyleMetaSprite
-    .db 0 0 0
+  .macro Make2x2MetaSprites
+    .rept nargs/2
+      \2
+        .db 4
+        .db -4, -4, 4, 4
+        .db -4, \1, 4, \1+1, -4, \1+2, 4, \1+3
+        .shift
+        .shift
+    .endr
+  .endm
+
+  Make2x2MetaSprites E1, GargoyleFlying1:, E1+4, GargoyleFlying2:
+
+  .macro TestMacro
+    .rept nargs/2
+      \2
+        .db \1
+      .shift
+      .shift
+    .endr
+  .endm
+
+  TestMacro $ff, MyLabel: $fe, MyLabel2:
+
   GargoyleMetaSprite:
     .db 4
     .db -4, -4, 4, 4
     .db -4, E1, 4, E1+1, -4, E1+2, 4, E1+3
+  GargoyleInitString:
+    .db 1
+    .db 50 50
+    .dw GargoyleFlying1
+    .db 0 0 0
 
+  ZombieMetaSprite:
+    .db 6
+    .db -8, -8, 0, 0, 8, 8
+    .db -4, E2, 4, E2+1, -4, E2+2, 4, E2+3, -4, E2+4, 4, E2+5
   ZombieInitString:
     .db 1
     .db 120 120
     .dw ZombieMetaSprite
     .db 0 0 0
-  ZombieMetaSprite:
-    .db 6
-    .db -8, -8, 0, 0, 8, 8
-    .db -4, E2, 4, E2+1, -4, E2+2, 4, E2+3, -4, E2+4, 4, E2+5
 
   _EventTable:
     .dw _Event0 _Event1 _Event2
