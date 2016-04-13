@@ -26,38 +26,44 @@
     .include "Data/Zombie-Tiles.inc"
   SpriteTilesEnd:
 
-  SwabbyMetaSprite:
-    .db 6
-    .db -4, -4, -4, 4, 4, 4
-    .db -8, 0, 0, 1, 8, 2, -8, 3, 0, 4, 8, 5
-
-  GargoyleMetaSprite:
-    .db 4
-    .db 0 0 8 8
-    .db 0 18 8 19 0 20 8 21
-
-  ZombieMetaSprite:
-    .db 6
-    .db 0 0 8 8 16 16
-    .db 0 26 8 27 0 28 8 29 0 30 8 31
-
   SwabbyInitString:
     .db 1                     ; Initial status.
     .db 20 40                 ; Start Y and start X.
-    .dw SwabbyMetaSprite      ; MetaSpritePointer.
+    .dw SwabbyFlying3         ; MetaSpritePointer.
     .db 0 0 0                 ; Movement type, vertical and horizontal speed.
+  SwabbyFlying1:
+    .db 6
+    .db -4, -4, -4, 4, 4, 4
+    .db -8, 0, 0, 1, 8, 2, -8, 3, 0, 4, 8, 5
+  SwabbyFlying2:
+    .db 6
+    .db -4, -4, -4, 4, 4, 4
+    .db -8, 6, 0, 7, 8, 8, -8, 9, 0, 10, 8, 11
+  SwabbyFlying3:
+    .db 6
+    .db -4, -4, -4, 4, 4, 4
+    .db -8, 12, 0, 13, 8, 14, -8, 15, 0, 16, 8, 17
 
   GargoyleInitString:
     .db 1
     .db 50 50
     .dw GargoyleMetaSprite
     .db 0 0 0
+  GargoyleMetaSprite:
+    .db 4
+    .db -4, -4, 4, 4
+    .db -4, 18, 4, 19, -4, 20, 4, 21
 
   ZombieInitString:
     .db 1
     .db 120 120
     .dw ZombieMetaSprite
     .db 0 0 0
+  ZombieMetaSprite:
+    .db 6
+    .db -8, -8, 0, 0, 8, 8
+    .db -4, 26, 4, 27, -4, 28, 4, 29, -4, 30, 4, 31
+
 
   _EventTable:
     .dw _Event0 _Event1 _Event2

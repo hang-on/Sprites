@@ -93,10 +93,8 @@
     ; Exit: SpriteBufferY and SpriteBufferXC is updated. NextFreeSprite is
     ; incremented.
 
-    ; Perform vertical clipping test and save the parameters in ram.
+    ; Save the parameters in ram.
     ld (MasterY),a
-    cp Y_MAX
-    ret nc                ; Quick and dirty sprite clipping technique.
     ld a,b
     ld (MasterX),a
 
