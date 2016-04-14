@@ -21,11 +21,15 @@
 .section "LoadSAT" free
 ; -----------------------------------------------------------------------------
   ; Load the vram sat with the SatY and SatXC buffers.
+  ; Sonic 2 inspired flicker engine is in place: Flicker sprites by loading the
+  ; SAT in ascending/descending order every other frame. Always keep first 8
+  ; sprites on top (for a non-flickering master object, i.e. the player).
   LoadSAT:
     ld a,(SATLoadMode)
     cp DESCENDING
     jp z,_DescendingLoad
-      ; If not descending, then fall through to asceding load mode.
+      ; If not descending, then fall through to ascending load mode.
+
       ; Load y-coordinates.
       ld hl,SAT_Y_START
       ld a,l
@@ -54,16 +58,21 @@
   ret
 
     _DescendingLoad:
-      ; Load y-coordinates
+      ; Load y-coordinates.
       ld hl,SAT_Y_START
       ld a,l
       out (CONTROL_PORT),a
       ld a,h
       or VRAM_WRITE_COMMAND
       out (CONTROL_PORT),a
-      ld hl,SpriteBufferY+63    ; Point to last y-value in buffer.
       ld c,DATA_PORT
-      .rept 64
+      ld hl,SpriteBufferY
+      .rept 8
+        outi
+      .endr
+
+      ld hl,SpriteBufferY+63    ; Point to last y-value in buffer.
+      .rept 56
         outd                    ; Output and decrement HL, thus going
       .endr                     ; backwards (descending) through the buffer.
 
@@ -74,10 +83,16 @@
       ld a,h
       or VRAM_WRITE_COMMAND
       out (CONTROL_PORT),a
-      ld hl,SpriteBufferXC+126
       ld c,DATA_PORT
+      ld hl,SpriteBufferXC
+      .rept 8
+        outi
+        outi
+      .endr
+
+      ld hl,SpriteBufferXC+126
       ld de,-4
-      .rept 64
+      .rept 56
         outi
         outi
         add hl,de
