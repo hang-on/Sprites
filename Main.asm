@@ -101,7 +101,7 @@
     .db 1
     .db 120 120
     .dw Zombie1
-    .db SIMPLE_MOVEMENT, 1, 1
+    .db SIMPLE_MOVEMENT, 0, -1
 
   SetupMain:
     ld a,0
