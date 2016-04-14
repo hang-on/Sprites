@@ -4,8 +4,9 @@
 ; Note: Spritelib depends on constants from Base.inc.
 
 .equ FIRST_FREE_SPRITE 0    ; First sprite controlled by this library.
-.equ Y_MAX 193              ; For quick and dirty clipping.
-
+                            ; FIXME - Library actually assumes full control.
+.equ ASCENDING 0
+.equ DESCENDING $ff
 
 .ramsection "Spritelib Variables" slot 3
   SpriteBufferY dsb 64
@@ -14,66 +15,100 @@
   MasterY db
   MasterX db
   MetaSpriteSize db
+  SATLoadMode db             ; Ascending or descending - for flickering.
 .ends
 ; -----------------------------------------------------------------------------
 .section "LoadSAT" free
 ; -----------------------------------------------------------------------------
-  ; Load the vram sat with the SatY and SatXC buffers
-  ; Time: 15 lines, 64 sprites are updated with x,y positions and char codes.
-  ; FIXME: Add flickering a'la Sonic.
+  ; Load the vram sat with the SatY and SatXC buffers.
   LoadSAT:
-    ; Load y-coordinates
-    ld hl,SAT_Y_START
-    ld a,l
-    out (CONTROL_PORT),a
-    ld a,h
-    or VRAM_WRITE_COMMAND
-    out (CONTROL_PORT),a
-    ld hl,SpriteBufferY
-    ld c,DATA_PORT
-    .rept 64
-      outi
-    .endr
+    ld a,(SATLoadMode)
+    cp DESCENDING
+    jp z,_DescendingLoad
+      ; If not descending, then fall through to asceding load mode.
+      ; Load y-coordinates.
+      ld hl,SAT_Y_START
+      ld a,l
+      out (CONTROL_PORT),a
+      ld a,h
+      or VRAM_WRITE_COMMAND
+      out (CONTROL_PORT),a
+      ld hl,SpriteBufferY
+      ld c,DATA_PORT
+      .rept 64
+        outi
+      .endr
 
-    ; Load x-coordinates and character codes
-    ld hl,SAT_XC_START
-    ld a,l
-    out (CONTROL_PORT),a
-    ld a,h
-    or VRAM_WRITE_COMMAND
-    out (CONTROL_PORT),a
-    ld hl,SpriteBufferXC
-    ld c,DATA_PORT
-    .rept 128
-      outi
-    .endr
+      ; Load x-coordinates and character codes.
+      ld hl,SAT_XC_START
+      ld a,l
+      out (CONTROL_PORT),a
+      ld a,h
+      or VRAM_WRITE_COMMAND
+      out (CONTROL_PORT),a
+      ld hl,SpriteBufferXC
+      ld c,DATA_PORT
+      .rept 128
+        outi
+      .endr
   ret
+
+    _DescendingLoad:
+      ; Load y-coordinates
+      ld hl,SAT_Y_START
+      ld a,l
+      out (CONTROL_PORT),a
+      ld a,h
+      or VRAM_WRITE_COMMAND
+      out (CONTROL_PORT),a
+      ld hl,SpriteBufferY+63    ; Point to last y-value in buffer.
+      ld c,DATA_PORT
+      .rept 64
+        outd                    ; Output and decrement HL, thus going
+      .endr                     ; backwards (descending) through the buffer.
+
+      ; Load x-coordinates and character codes
+      ld hl,SAT_XC_START
+      ld a,l
+      out (CONTROL_PORT),a
+      ld a,h
+      or VRAM_WRITE_COMMAND
+      out (CONTROL_PORT),a
+      ld hl,SpriteBufferXC+126
+      ld c,DATA_PORT
+      ld de,-4
+      .rept 64
+        outi
+        outi
+        add hl,de
+      .endr
+  ret
+
 .ends
 
 ; -----------------------------------------------------------------------------
 .section "BeginMetaSprites" free
 ; -----------------------------------------------------------------------------
+  WipeData:
+    .rept 64
+      .db $e0
+    .endr
+
   BeginMetaSprites:
     ; Reset the NextFreeSprite index at the beginning of every frame
     ld a,FIRST_FREE_SPRITE
     ld (NextFreeSprite),a
-  ret
-.ends
 
-; -----------------------------------------------------------------------------
-.section "FinalizeMetaSprites" free
-; -----------------------------------------------------------------------------
-  FinalizeMetaSprites:
-    ; Put the terminator in the buffer
+    ; Toggle ascending/descending sat load mode.
+    ld a,(SATLoadMode)
+    cpl
+    ld (SATLoadMode),a
+
+    ; Wipe Y-buffer with $e0 to get unused sprites out of the way.
+    ld hl,WipeData
     ld de,SpriteBufferY
-    ld a,(NextFreeSprite)
-    add a,e
-    ld e,a
-    ld a,0
-    adc a,d
-    ld d,a
-    ld a,SPRITE_TERMINATOR
-    ld (de),a
+    ld bc,64
+    ldir
   ret
 .ends
 

@@ -7,7 +7,8 @@
   FrameCounter db
   PlayerHandle db
   GargoyleHandle db
-  ZombieHandle db
+  Zombie1Handle db
+  Zombie2Handle db
   NextEventIndex db
 .ends
 ; -----------------------------------------------------------------------------
@@ -93,15 +94,22 @@
 
   GargoyleInitString:
     .db 1
-    .db 50 50
+    .db 120 70
     .dw Gargoyle1
     .db JOYSTICK_2 2 2
 
-  ZombieInitString:
+  Zombie1InitString:
     .db 1
     .db 120 120
     .dw Zombie1
-    .db SIMPLE_MOVEMENT, 0, -1
+    .db STATIC, 0, -1
+
+  Zombie2InitString:
+    .db 1
+    .db 120 140
+    .dw Zombie2
+    .db STATIC, 0, -1
+
 
   SetupMain:
     ld a,0
@@ -190,9 +198,12 @@
       ld hl,GargoyleInitString
       call CreateObject
       ld (GargoyleHandle),a
-      ld hl,ZombieInitString
+      ld hl,Zombie1InitString
       call CreateObject
-      ld (ZombieHandle),a
+      ld (Zombie1Handle),a
+      ld hl,Zombie2InitString
+      call CreateObject
+      ld (Zombie2Handle),a
       jp _EndEvents
     _Event2:
       nop ; Do nothing... (event handler loops on this last element).

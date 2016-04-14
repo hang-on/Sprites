@@ -112,7 +112,6 @@
       ld de,16
       add ix,de
     .endr
-    call FinalizeMetaSprites
   ret
 
   _DrawObject:
