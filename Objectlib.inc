@@ -90,20 +90,18 @@
 ; -----------------------------------------------------------------------------
   ; Frame-by-frame housekeeping of the objects.
   ObjectFrame:
-    ; Start with animation, etc...
-    call AnimateObjects
-
     ld ix,ObjectAttributeTable
-    .rept 16
-      ld a,(ix+0)
+    .rept 16                ; Run through all 16 objects.
+      ld a,(ix+0)           ; Get the status byte.
       or a                  ; Zero means object is idle.
-      jp z,+
-        call MoveObject     ;
+      jp z,+                ; If idle, then skip forward, else process object.
+        call AnimateObject
+        call MoveObject
 
       +:
       ld de,16
-      add ix,de
-    .endr
+      add ix,de             ; Point to status byte of next object.
+    .endr                   ; Repeat to test and process all objects.
 
     ; Finish by drawing the objects as they look by now.
     call DrawObjects
@@ -111,24 +109,17 @@
 .ends
 
 ; -----------------------------------------------------------------------------
-.section "AnimateObjects" free
+.section "AnimateObject" free
 ; -----------------------------------------------------------------------------
-  ; Text
-  AnimateObjects:
-    ld ix,ObjectAttributeTable
-    .rept 16
-      ld a,(ix+0)
-      or a
-      jp z,+
-        ld a,(ix+11)
-        or a                  ; Zero: Time to load a new meta sprite pointer.
-        call z,_LoadMetaSpriterPointer
-        dec (ix+11)
-      +:
-      ld de,16
-      add ix,de
-    .endr
-
+  ; Decrement object's animation timer. Load new meta sprite pointer (i.e. a
+  ; new frame of animation) if the timer is up.
+  ; Entry: IX = Base address of OAT element.
+  ; Uses: AF, DE, HL, IX
+  AnimateObject:
+    ld a,(ix+11)
+    or a                  ; Zero: Time to load a new meta sprite pointer.
+    call z,_LoadMetaSpriterPointer
+    dec (ix+11)
   ret
 
   _LoadMetaSpriterPointer:
@@ -158,7 +149,6 @@
       ld (ix+4),a
       inc (ix+10)     ; Increment the animation table index.
   ret
-
 .ends
 
 ; -----------------------------------------------------------------------------
