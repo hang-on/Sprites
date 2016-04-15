@@ -41,8 +41,7 @@
       ld a,(ix+0)
       or a                  ; Zero means object is idle.
       jp nz,+
-        ;call _LoadElement
-        call _LoadElementProto
+        call _LoadElement
         or a                ; Clear carry (operation successful).
         ld a,b              ; Return with A holding the index.
         ret
@@ -56,7 +55,7 @@
     scf                      ; Set carry to indicate error.
   ret
 
-  _LoadElementProto:
+  _LoadElement:
     push ix
     pop de
     .rept 15
@@ -93,7 +92,18 @@
   ObjectFrame:
     ; Start with animation, etc...
     call AnimateObjects
-    call MoveObjects
+
+    ld ix,ObjectAttributeTable
+    .rept 16
+      ld a,(ix+0)
+      or a                  ; Zero means object is idle.
+      jp z,+
+        call MoveObject     ;
+
+      +:
+      ld de,16
+      add ix,de
+    .endr
 
     ; Finish by drawing the objects as they look by now.
     call DrawObjects
@@ -134,7 +144,7 @@
     ld a,(hl)         ; Read control byte.
     or a
     jp z,+           ; Zero means forward to next frame.
-      ld a,-1        ; .. So it wil be incremented to zero below.  
+      ld a,-1        ; .. So it wil be incremented to zero below.
       ld (ix+10),a
     +:
       inc hl
@@ -181,27 +191,10 @@
 .ends
 
 ; -----------------------------------------------------------------------------
-.section "MoveObjects" free
+.section "MoveObject" free
 ; -----------------------------------------------------------------------------
-  ; Process all objects. If an object is active, handle its movement with
-  ; settings in Movement, Vertical and Horizontal speed.
-  MoveObjects:
-    ld hl,ObjectAttributeTable
-    .rept 16
-      ld a,(hl)
-      or a                  ; Zero means object is idle.
-      call nz,_MoveObject
-      ld de,16
-      add hl,de
-    .endr
-  ret
-
-  _MoveObject:
-  ; Entry: HL = Base address of active OAT element.
-  ; HL is saved.
-    push hl
-    push hl
-    pop ix
+  MoveObject:
+    ; Entry: IX = Base address of active OAT element.
     ld a,(ix+5)
     add a,a
     ld d,0
@@ -286,7 +279,6 @@
     jp _EndSwitch
 
     _EndSwitch:
-      pop hl
   ret
 
 .ends
