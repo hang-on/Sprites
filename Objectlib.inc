@@ -4,22 +4,25 @@
 ; Note: It builds on top of the Spritelib.
 
 ; Definitions for object's movement type.
-.equ STATIC     0
-.equ JOYSTICK_1 1
-.equ JOYSTICK_2 2
-.equ SIMPLE_MOVEMENT   3
+.equ STATIC            0  ; Ignore vertical and horizontal speeds. Stay still.
+.equ JOYSTICK_1        1  ; Object is controlled with joystick in port 1.
+.equ JOYSTICK_2        2  ; Object is controlled with joystick in port 2.
+.equ SIMPLE_MOVEMENT   3  ; Object moves by values in v- and h-speed.
 
 
 .ramsection "Objectlib Variables" slot 3
   ObjectAttributeTable dsb 256 ; 16 objects, 16 bytes each. Abbrev. OAT.
-    ; 0: Status
-    ; 1    : Y
-    ; 2    : X
-    ; 3-4  : MetaSpritePointer
-    ; 5    : Movement
-    ; 6    : Vertical speed
-    ; 7    : Horizontal speed
-    ; 8-15 : Reserved
+    ; 0     : Status
+    ; 1     : Y
+    ; 2     : X
+    ; 3-4   : MetaSpritePointer
+    ; 5     : Movement
+    ; 6     : Vertical speed
+    ; 7     : Horizontal speed
+    ; 8-9   : AnimTableBaseAddress
+    ; 10    : AnimationTableIndex
+    ; 11    : AnimationTimer
+    ; 12-15 : Reserved
 .ends
 
 ; -----------------------------------------------------------------------------
@@ -89,11 +92,63 @@
   ; Frame-by-frame housekeeping of the objects.
   ObjectFrame:
     ; Start with animation, etc...
+    call AnimateObjects
     call MoveObjects
 
     ; Finish by drawing the objects as they look by now.
     call DrawObjects
   ret
+.ends
+
+; -----------------------------------------------------------------------------
+.section "AnimateObjects" free
+; -----------------------------------------------------------------------------
+  ; Text
+  AnimateObjects:
+    ld ix,ObjectAttributeTable
+    .rept 16
+      ld a,(ix+0)
+      or a
+      jp z,+
+        ld a,(ix+11)
+        or a                  ; Zero: Time to load a new meta sprite pointer.
+        call z,_LoadMetaSpriterPointer
+        dec (ix+11)
+      +:
+      ld de,16
+      add ix,de
+    .endr
+
+  ret
+
+  _LoadMetaSpriterPointer:
+    ; Entry: IX = Pointer to OAT element.
+    ld a,(ix+10)      ; Get animation table index.
+    add a,a
+    add a,a           ; Times 4.
+    ld d,0
+    ld e,a
+    ld l,(ix+8)
+    ld h,(ix+9)
+    add hl,de
+    ld a,(hl)         ; Read control byte.
+    or a
+    jp z,+           ; Zero means forward to next frame.
+      ld a,-1        ; .. So it wil be incremented to zero below.  
+      ld (ix+10),a
+    +:
+      inc hl
+      ld a,(hl)       ; Read new timer value from table.
+      ld (ix+11),a    ; Store it in OAT.
+      inc hl
+      ld a,(hl)
+      ld (ix+3),a
+      inc hl
+      ld a,(hl)
+      ld (ix+4),a
+      inc (ix+10)     ; Increment the animation table index.
+  ret
+
 .ends
 
 ; -----------------------------------------------------------------------------

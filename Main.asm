@@ -8,7 +8,6 @@
   PlayerHandle db
   GargoyleHandle db
   Zombie1Handle db
-  Zombie2Handle db
   NextEventIndex db
 .ends
 ; -----------------------------------------------------------------------------
@@ -86,30 +85,35 @@
   Make2x2MetaSprites E1, Gargoyle1:, E1+4, Gargoyle2:
   Make2x3MetaSprites E2, Zombie1:, E2+6, Zombie2:
 
+  ; Animation table: An array of metasprites with corresponding timer values.
+  SwabbyFlying:
+    .dw $2000 Swabby1 $2000 Swabby3 $2000 Swabby1 $2000 Swabby3
+    .dw $2000 Swabby2 $20ff Swabby3 ; $ff (or non-zero value means loop).
+
   SwabbyInitString:
     .db 1                     ; Initial status.
     .db 20 40                 ; Start Y and start X.
     .dw Swabby1               ; MetaSpritePointer.
-    .db JOYSTICK_1 1 2        ; Movement type, vertical and horizontal speed.
+    .db JOYSTICK_1 2 2        ; Movement type, vertical and horizontal speed.
+    .dw SwabbyFlying
+    .db 0 0
+
+  GargoyleFlying:
+    .dw $0700 Gargoyle1 $07ff Gargoyle2
 
   GargoyleInitString:
     .db 1
     .db 120 70
     .dw Gargoyle1
     .db JOYSTICK_2 2 2
+    .dw GargoyleFlying
+    .db 0 0
 
   Zombie1InitString:
     .db 1
     .db 120 120
     .dw Zombie1
     .db STATIC, 0, -1
-
-  Zombie2InitString:
-    .db 1
-    .db 120 140
-    .dw Zombie2
-    .db STATIC, 0, -1
-
 
   SetupMain:
     ld a,0
@@ -176,8 +180,8 @@
     ld h,(hl)
     ld l,a
     jp (hl)
-    ; Refer to event table in the data section above.
-    ; .... when the event is over, we jump back to _EndEvents below.
+    ; Refer to event table below.
+    ; .... when the event is over, resume from _EndEvents.
   _EndEvents:
     ld a,(NextEventIndex)
     cp ((_EventTableEnd-_EventTable)/2)-1
@@ -193,17 +197,14 @@
       ld hl,SwabbyInitString
       call CreateObject
       ld (PlayerHandle),a
-      jp _EndEvents
-    _Event1:
       ld hl,GargoyleInitString
       call CreateObject
       ld (GargoyleHandle),a
-      ld hl,Zombie1InitString
-      call CreateObject
-      ld (Zombie1Handle),a
-      ld hl,Zombie2InitString
-      call CreateObject
-      ld (Zombie2Handle),a
+      jp _EndEvents
+    _Event1:
+      ;ld hl,Zombie1InitString
+      ;call CreateObject
+      ;ld (Zombie1Handle),a
       jp _EndEvents
     _Event2:
       nop ; Do nothing... (event handler loops on this last element).
