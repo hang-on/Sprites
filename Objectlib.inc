@@ -26,6 +26,49 @@
 .ends
 
 ; -----------------------------------------------------------------------------
+.section "AnimateObject" free
+; -----------------------------------------------------------------------------
+  ; Decrement object's animation timer. Load new meta sprite pointer (i.e. a
+  ; new frame of animation) if the timer is up.
+  ; Entry: IX = Base address of OAT element.
+  ; Uses: AF, DE, HL, IX
+  AnimateObject:
+    ld a,(ix+11)
+    or a                  ; Zero: Time to load a new meta sprite pointer.
+    call z,_LoadMetaSpriterPointer
+    dec (ix+11)
+  ret
+
+  _LoadMetaSpriterPointer:
+    ; Entry: IX = Pointer to OAT element.
+    ld a,(ix+10)      ; Get animation table index.
+    add a,a
+    add a,a           ; Times 4.
+    ld d,0
+    ld e,a
+    ld l,(ix+8)
+    ld h,(ix+9)
+    add hl,de
+    ld a,(hl)         ; Read control byte.
+    or a
+    jp z,+           ; Zero means forward to next frame.
+      ld a,-1        ; .. So it wil be incremented to zero below.
+      ld (ix+10),a
+    +:
+      inc hl
+      ld a,(hl)       ; Read new timer value from table.
+      ld (ix+11),a    ; Store it in OAT.
+      inc hl
+      ld a,(hl)
+      ld (ix+3),a
+      inc hl
+      ld a,(hl)
+      ld (ix+4),a
+      inc (ix+10)     ; Increment the animation table index.
+  ret
+.ends
+
+; -----------------------------------------------------------------------------
 .section "CreateObject" free
 ; -----------------------------------------------------------------------------
   ; Find an object with Status = 0 in OAT. Load data into this object from a
@@ -86,72 +129,6 @@
 .ends
 
 ; -----------------------------------------------------------------------------
-.section "ObjectFrame" free
-; -----------------------------------------------------------------------------
-  ; Frame-by-frame housekeeping of the objects.
-  ObjectFrame:
-    ld ix,ObjectAttributeTable
-    .rept 16                ; Run through all 16 objects.
-      ld a,(ix+0)           ; Get the status byte.
-      or a                  ; Zero means object is idle.
-      jp z,+                ; If idle, then skip forward, else process object.
-        call AnimateObject
-        call MoveObject
-
-      +:
-      ld de,16
-      add ix,de             ; Point to status byte of next object.
-    .endr                   ; Repeat to test and process all objects.
-
-    ; Finish by drawing the objects as they look by now.
-    call DrawObjects
-  ret
-.ends
-
-; -----------------------------------------------------------------------------
-.section "AnimateObject" free
-; -----------------------------------------------------------------------------
-  ; Decrement object's animation timer. Load new meta sprite pointer (i.e. a
-  ; new frame of animation) if the timer is up.
-  ; Entry: IX = Base address of OAT element.
-  ; Uses: AF, DE, HL, IX
-  AnimateObject:
-    ld a,(ix+11)
-    or a                  ; Zero: Time to load a new meta sprite pointer.
-    call z,_LoadMetaSpriterPointer
-    dec (ix+11)
-  ret
-
-  _LoadMetaSpriterPointer:
-    ; Entry: IX = Pointer to OAT element.
-    ld a,(ix+10)      ; Get animation table index.
-    add a,a
-    add a,a           ; Times 4.
-    ld d,0
-    ld e,a
-    ld l,(ix+8)
-    ld h,(ix+9)
-    add hl,de
-    ld a,(hl)         ; Read control byte.
-    or a
-    jp z,+           ; Zero means forward to next frame.
-      ld a,-1        ; .. So it wil be incremented to zero below.
-      ld (ix+10),a
-    +:
-      inc hl
-      ld a,(hl)       ; Read new timer value from table.
-      ld (ix+11),a    ; Store it in OAT.
-      inc hl
-      ld a,(hl)
-      ld (ix+3),a
-      inc hl
-      ld a,(hl)
-      ld (ix+4),a
-      inc (ix+10)     ; Increment the animation table index.
-  ret
-.ends
-
-; -----------------------------------------------------------------------------
 .section "DrawObjects" free
 ; -----------------------------------------------------------------------------
   ; Utilize the Spritelib for drawing the active objects' metasprites.
@@ -177,6 +154,30 @@
     ld a,(ix+1)
     ld b,(ix+2)
     call AddMetaSprite
+  ret
+.ends
+
+; -----------------------------------------------------------------------------
+.section "ObjectFrame" free
+; -----------------------------------------------------------------------------
+  ; Frame-by-frame housekeeping of the objects.
+  ; Assume that all registers are used.
+  ObjectFrame:
+    ld ix,ObjectAttributeTable
+    .rept 16                ; Run through all 16 objects.
+      ld a,(ix+0)           ; Get the status byte.
+      or a                  ; Zero means object is idle.
+      jp z,+                ; If idle, then skip forward, else process object.
+        call AnimateObject
+        call MoveObject
+
+      +:
+      ld de,16
+      add ix,de             ; Point to status byte of next object.
+    .endr                   ; Repeat to test and process all objects.
+
+    ; Finish by drawing the objects as they look by now.
+    call DrawObjects
   ret
 .ends
 
@@ -270,5 +271,4 @@
 
     _EndSwitch:
   ret
-
 .ends
