@@ -2,6 +2,8 @@
 ;                           OBJECT LIBRARY
 ; *****************************************************************************
 ; Note: It builds on top of the Spritelib.
+.equ OAT_ELEMENT_SIZE 64
+.equ MAX_OBJECTS 16
 
 ; Definitions for object's movement type.
 .equ STATIC            0  ; Ignore vertical and horizontal speeds. Stay still.
@@ -11,7 +13,7 @@
 
 
 .ramsection "Objectlib Variables" slot 3
-  ObjectAttributeTable dsb 256 ; 16 objects, 16 bytes each. Abbrev. OAT.
+  ObjectAttributeTable dsb 16*OAT_ELEMENT_SIZE
     ; 0     : Status
     ; 1     : Y
     ; 2     : X
@@ -22,7 +24,7 @@
     ; 8-9   : AnimTableBaseAddress
     ; 10    : AnimationTableIndex
     ; 11    : AnimationTimer
-    ; 12-15 : Reserved
+    ; 12-63 : Unused
 .ends
 
 ; -----------------------------------------------------------------------------
@@ -89,11 +91,11 @@
         ld a,b              ; Return with A holding the index.
         ret
       +:
-      ld de,16
+      ld de,OAT_ELEMENT_SIZE
       add ix,de
       inc b
       ld a,b
-      cp 16
+      cp MAX_OBJECTS
     jp nz,-
     scf                      ; Set carry to indicate error.
   ret
@@ -101,7 +103,7 @@
   _LoadElement:
     push ix
     pop de
-    .rept 15
+    .rept OAT_ELEMENT_SIZE
       ldi
     .endr
   ret
@@ -117,7 +119,7 @@
     ld hl,ObjectAttributeTable
     cp 0
     jp z,+
-    ld de,16
+    ld de,OAT_ELEMENT_SIZE
     ld b,a
     -:
       add hl,de
@@ -141,7 +143,7 @@
       ld a,(ix+0)
       or a                  ; Zero means object is idle.
       call nz,_DrawObject
-      ld de,16
+      ld de,OAT_ELEMENT_SIZE
       add ix,de
     .endr
   ret
@@ -172,7 +174,7 @@
         call MoveObject
 
       +:
-      ld de,16
+      ld de,OAT_ELEMENT_SIZE
       add ix,de             ; Point to status byte of next object.
     .endr                   ; Repeat to test and process all objects.
 
