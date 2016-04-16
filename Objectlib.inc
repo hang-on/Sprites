@@ -27,7 +27,9 @@
     ; 11    : AnimationTimer
     ; 12-13 : Movement pattern table pointer.
     ; 14    : Pattern timer.
-    ; 15-63 : Unused
+    ; 15    : DelayCounter
+    ; 16    : DelayValue
+    ; 17-63 : Unused
 .ends
 
 ; -----------------------------------------------------------------------------
@@ -191,6 +193,16 @@
 ; -----------------------------------------------------------------------------
   MoveObject:
     ; Entry: IX = Base address of active OAT element.
+
+    ; First handle delay.
+    ld a,(ix+16)            ; Get delay value (0 means no delay).
+    or a
+    jp z,+
+      ; Okay, delay is active...
+      dec (ix+15)
+      ret nz
+      ld (ix+15),a          ; A still holds the delay value.
+    +:
     ld a,(ix+5)
     add a,a
     ld d,0

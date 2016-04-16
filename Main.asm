@@ -107,6 +107,7 @@
     .db 0 0                   ; Animation table index and timer.
     .dw $0000                 ; Movement pattern table.
     .db 0                     ; Pattern timer.
+    .db 0,0                   ; Delay counter and delay value.
 
   GargoyleFlying:
     .dw $0700 Gargoyle1 $07ff Gargoyle2
@@ -118,8 +119,9 @@
     .db PATTERN 2 2
     .dw GargoyleFlying
     .db 0 0
-    .dw Pattern1
+    .dw Pattern2
     .db 0
+    .db 2, 2
 
   Zombie1InitString:
     .db 1
@@ -135,6 +137,10 @@
 
     ld hl,BatchLoadTable
     call _BatchLoadTiles
+
+    ld a,FULL_SCROLL_BLANK_LEFT_COLUMN_KEEP_SPRITES_NO_RASTER_INT
+    ld b,0
+    call SetRegister
 
     ld a,ENABLE_DISPLAY_ENABLE_FRAME_INTERRUPTS_NORMAL_SPRITES
     ld b,1
