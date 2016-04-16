@@ -90,13 +90,28 @@
     .dw $2000 Swabby1 $2000 Swabby3 $2000 Swabby1 $2000 Swabby3
     .dw $2000 Swabby2 $20ff Swabby3 ; $ff (or non-zero value means loop).
 
+  ; Movement patterne for gargoyle.
+  Pattern1:
+    .db 0
+    .db -2
+    .db 120
+
+    .db 1
+    .db 1
+    .db 200
+
+    .db $ff                   ; Pattern table jump...
+    .dw Pattern1              ; To this address (here it is just loop).
+
   SwabbyInitString:
     .db 1                     ; Initial status.
     .db 20 40                 ; Start Y and start X.
     .dw Swabby1               ; MetaSpritePointer.
     .db JOYSTICK_1 2 2        ; Movement type, vertical and horizontal speed.
-    .dw SwabbyFlying
-    .db 0 0
+    .dw SwabbyFlying          ; Animation table base address.
+    .db 0 0                   ; Animation table index and timer.
+    .dw $0000                 ; Movement pattern table.
+    .db 0                     ; Pattern timer.
 
   GargoyleFlying:
     .dw $0700 Gargoyle1 $07ff Gargoyle2
@@ -108,6 +123,8 @@
     .db JOYSTICK_2 2 2
     .dw GargoyleFlying
     .db 0 0
+    .dw Pattern1
+    .db 0
 
   Zombie1InitString:
     .db 1

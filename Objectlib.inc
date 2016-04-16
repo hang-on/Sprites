@@ -10,6 +10,7 @@
 .equ JOYSTICK_1        1  ; Object is controlled with joystick in port 1.
 .equ JOYSTICK_2        2  ; Object is controlled with joystick in port 2.
 .equ SIMPLE_MOVEMENT   3  ; Object moves by values in v- and h-speed.
+.equ PATTERN           4  ; Object moves according to a pattern.
 
 
 .ramsection "Objectlib Variables" slot 3
@@ -24,7 +25,9 @@
     ; 8-9   : AnimTableBaseAddress
     ; 10    : AnimationTableIndex
     ; 11    : AnimationTimer
-    ; 12-63 : Unused
+    ; 12-13 : Movement pattern table pointer.
+    ; 14    : Pattern timer.
+    ; 15-63 : Unused
 .ends
 
 ; -----------------------------------------------------------------------------
