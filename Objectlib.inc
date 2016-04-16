@@ -11,7 +11,7 @@
 .equ JOYSTICK_2        2  ; Object is controlled with joystick in port 2.
 .equ SIMPLE_MOVEMENT   3  ; Object moves by values in v- and h-speed.
 .equ PATTERN           4  ; Object moves according to a pattern.
-
+; NOTE: Be sure to align _MovementTable to these definitions!
 
 .ramsection "Objectlib Variables" slot 3
   ObjectAttributeTable dsb 16*OAT_ELEMENT_SIZE
@@ -205,7 +205,7 @@
 
     _MovementTable:
       .dw _Static, _Joystick1Controlled, _Joystick2Controlled
-      .dw _SimpleMovement
+      .dw _SimpleMovement _PatternMovement
 
     _Static:
       jp _EndSwitch
@@ -274,6 +274,56 @@
       ld (ix+2),a
     jp _EndSwitch
 
+    _PatternMovement:
+      ld a,(ix+14)
+      or a
+      jp nz,+
+        debug:
+        ld l,(ix+12)
+        ld h,(ix+13)
+        ld a,(hl)       ; Get vertical speed from pattern table.
+        cp $ff          ; If vertical speed is $ff, it means that we should
+        call z,_LoadPatternPointer ; load a new value into the pattern pointer.
+
+        ld (ix+6),a     ; Update object's vertical speed.
+        inc hl
+        ld a,(hl)       ; Get horizontal speed from pattern table.
+        ld (ix+7),a     ; Update object's horizontal speed.
+        inc hl
+        ld a,(hl)       ; Get pattern timer value
+        ld (ix+14),a    ; ... and set it.
+        inc hl
+        ld (ix+12),l    ; Update the pattern table pointer.
+        ld (ix+13),h
+      +:
+      dec (ix+14)       ; Decrement the pattern timer.
+
+      ; Simply apply the vertical and horizontal speed to y and x...
+      ld a,(ix+1)
+      add a,(ix+6)
+      ld (ix+1),a
+      ld a,(ix+2)
+      add a,(ix+7)
+      ld (ix+2),a
+    jp _EndSwitch
+
     _EndSwitch:
+  ret
+
+  _LoadPatternPointer:
+    ; Read pointer from pattern table (at HL+1 and HL+2), and store it in the
+    ; pattern pointer in object's OAT element.
+    ; Entry: HL = Pointer to control byte $ff in a pattern table.
+    ;        IX = This object on the OAT.
+    ; Exit:  A = vertical speed.
+    inc hl
+    ld a,(hl)
+    ld (ix+12),a
+    inc hl
+    ld a,(hl)
+    ld (ix+13),a
+    ld l,(ix+12)
+    ld h,(ix+13)
+    ld a,(hl)       ; Leave with vertical speed in A...
   ret
 .ends

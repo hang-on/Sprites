@@ -90,18 +90,10 @@
     .dw $2000 Swabby1 $2000 Swabby3 $2000 Swabby1 $2000 Swabby3
     .dw $2000 Swabby2 $20ff Swabby3 ; $ff (or non-zero value means loop).
 
-  ; Movement patterne for gargoyle.
+  ; Movement pattern for gargoyle.
   Pattern1:
-    .db 0
-    .db -2
-    .db 120
-
-    .db 1
-    .db 1
-    .db 200
-
-    .db $ff                   ; Pattern table jump...
-    .dw Pattern1              ; To this address (here it is just loop).
+    .db 0, -2, 120, 1, 1, 200, -2, -1, 90, $ff
+    .dw Pattern1              ; Loop back.
 
   SwabbyInitString:
     .db 1                     ; Initial status.
@@ -120,7 +112,7 @@
     .db 1
     .db 120 70
     .dw Gargoyle1
-    .db JOYSTICK_2 2 2
+    .db PATTERN 2 2
     .dw GargoyleFlying
     .db 0 0
     .dw Pattern1
