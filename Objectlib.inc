@@ -282,7 +282,7 @@
         ld l,(ix+12)
         ld h,(ix+13)
         ld a,(hl)       ; Get vertical speed from pattern table.
-        cp $ff          ; If vertical speed is $ff, it means that we should
+        cp $aa          ; If vertical speed is $aa, it means that we should
         call z,_LoadPatternPointer ; load a new value into the pattern pointer.
 
         ld (ix+6),a     ; Update object's vertical speed.

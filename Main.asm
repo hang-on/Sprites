@@ -90,10 +90,13 @@
     .dw $2000 Swabby1 $2000 Swabby3 $2000 Swabby1 $2000 Swabby3
     .dw $2000 Swabby2 $20ff Swabby3 ; $ff (or non-zero value means loop).
 
-  ; Movement pattern for gargoyle.
-  Pattern1:
-    .db 0, -2, 120, 1, 1, 200, -2, -1, 90, $ff
+  ; Movement patterns.
+  Pattern1: ; The chineese birds-men.
+    .db 0, -1, 70, 1, -1, 90, 0, 1, 175, $aa
     .dw Pattern1              ; Loop back.
+  Pattern2: ; Classic sine-wave.
+    .db 1, -1, 32, -1, -1, 64, 1, -1, 32, $aa
+    .dw Pattern2
 
   SwabbyInitString:
     .db 1                     ; Initial status.
@@ -110,7 +113,7 @@
 
   GargoyleInitString:
     .db 1
-    .db 120 70
+    .db 50 245
     .dw Gargoyle1
     .db PATTERN 2 2
     .dw GargoyleFlying
