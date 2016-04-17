@@ -206,6 +206,11 @@
       ; First byte: X.
       ld a,(hl)           ; Get the offset.
       add a,c             ; Apply MasterX to this offset.
+
+      ; FIXME: Here we should have some horizontal sprite clipping code.
+      ; Is the meta sprite (master x) leaving on left side? Right side?...
+      ; Clipping window defined...
+
       ld (de),a           ; Save it in buffer.
       inc hl              ; Forward both source and destination pointers...
       inc de

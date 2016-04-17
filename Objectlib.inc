@@ -27,8 +27,8 @@
     ; 11    : AnimationTimer
     ; 12-13 : Movement pattern table pointer.
     ; 14    : Pattern timer.
-    ; 15    : DelayCounter
-    ; 16    : DelayValue
+    ; 15    : DelayCounter - counts from DelayValue to zero.
+    ; 16    : DelayValue - how many frames to skip during each movement.
     ; 17-63 : Unused
 .ends
 
