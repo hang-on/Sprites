@@ -14,6 +14,7 @@
   NextFreeSprite db
   MasterY db
   MasterX db
+  MetaSpriteFlags db
   MetaSpriteSize db
   SATLoadMode db             ; Ascending or descending - for flickering.
 .ends
@@ -136,6 +137,7 @@
     ;        the meta sprite.
     ;        A = Master Y
     ;        B = Master X
+    ;        C = MetaSpriteFlags (for clipping)
     ; Procedure: First the program processes the Y-offsets. Each offset is
     ; applied to the master Y, and the result is saved in SpriteBufferY. Then
     ; the X-offsets are processed, and stored pairwise with character codes in
@@ -147,6 +149,8 @@
     ld (MasterY),a
     ld a,b
     ld (MasterX),a
+    ld a,c
+    ld (MetaSpriteFlags),a
 
     ; Get size of metasprite and put it in B.
     ld a,(hl)             ; HL points to size on entry.
@@ -197,30 +201,105 @@
     adc a,d               ; Apply a possible carry from LSB above.
     ld d,a                ; Now, DE is pointing correctly into SpriteBufferXC.
 
-    ; Apply offsets to MasterX and write results together with charcodes.
-    ld a,(MasterX)
-    ld c,a
-    ld a,(MetaSpriteSize) ; Retrieve size and store it in B for counting.
-    ld b,a
-    -:
-      ; First byte: X.
-      ld a,(hl)           ; Get the offset.
-      add a,c             ; Apply MasterX to this offset.
+    ; Now we got HL and DE set up, we branch according to which mask, if any,
+    ; to use when placing the sprite horizontally.
 
-      ; FIXME: Here we should have some horizontal sprite clipping code.
-      ; Is the meta sprite (master x) leaving on left side? Right side?...
-      ; Clipping window defined...
+    ld a,(MetaSpriteFlags)
+    bit 0,a
+    jp nz,_UseRightMask
+    bit 1,a
+    jp nz,_UseLeftMask
+    ; ... If none of the masks are set, then fall through to non-masked
+    ; processing.
 
-      ld (de),a           ; Save it in buffer.
-      inc hl              ; Forward both source and destination pointers...
-      inc de
+    _UseNoMask:
+      ; Apply offsets to MasterX and write results together with charcodes.
+      ld a,(MasterX)
+      ld c,a
+      ld a,(MetaSpriteSize) ; Retrieve size and store it in B for counting.
+      ld b,a
+      -:
+        ; First byte: X.
+        ld a,(hl)           ; Get the offset.
+        add a,c             ; Apply MasterX to this offset.
+        ld (de),a           ; Save it in buffer.
+        inc hl              ; Forward both source and destination pointers...
+        inc de
 
-      ; Second byte: Character code.
-      ld a,(hl)           ; Get the char code.
-      ld (de),a           ; Save it directly in buffer.
-      inc hl              ; Forward the pointers again...
-      inc de
-    djnz -
+        ; Second byte: Character code.
+        ld a,(hl)           ; Get the char code.
+        ld (de),a           ; Save it directly in buffer.
+        inc hl              ; Forward the pointers again...
+        inc de
+      djnz -
+      jp _Finish
+
+    ; Apply offsets with right mask on:
+    _UseRightMask:
+      ; Apply offsets to MasterX and write results together with charcodes.
+      ld a,(MasterX)
+      ld c,a
+      ld a,(MetaSpriteSize) ; Retrieve size and store it in B for counting.
+      ld b,a
+      -:
+        ; First byte: X.
+        ld a,(hl)           ; Get the offset.
+        add a,c             ; Apply MasterX to this offset.
+
+        ; Temp: Force right mask on this sprite...
+        cp 191
+        jp c,+
+          ; Sprite is about to be drawn on the masked out area (right side).
+          ; Prevent this by putting the sprite in the blanked column.
+          ld a,0
+        +:
+
+        ld (de),a           ; Save it in buffer.
+        inc hl              ; Forward both source and destination pointers...
+        inc de
+
+        ; Second byte: Character code.
+        ld a,(hl)           ; Get the char code.
+        ld (de),a           ; Save it directly in buffer.
+        inc hl              ; Forward the pointers again...
+        inc de
+      djnz -
+      jp _Finish
+
+    _UseLeftMask:
+      ; Apply offsets with left mask on:
+      ; Apply offsets to MasterX and write results together with charcodes.
+      ld a,(MasterX)
+      ld c,a
+      ld a,(MetaSpriteSize) ; Retrieve size and store it in B for counting.
+      ld b,a
+      -:
+        ; First byte: X.
+        ld a,(hl)           ; Get the offset.
+        add a,c             ; Apply MasterX to this offset.
+
+        ; Temp: Force left mask on this sprite...
+        cp 7+64
+        jp nc,+
+          ; Sprite is about to be drawn on the masked out area (right side).
+          ; Prevent this by putting the sprite in the blanked column.
+          ld a,0
+        +:
+
+        ld (de),a           ; Save it in buffer.
+        inc hl              ; Forward both source and destination pointers...
+        inc de
+
+        ; Second byte: Character code.
+        ld a,(hl)           ; Get the char code.
+        ld (de),a           ; Save it directly in buffer.
+        inc hl              ; Forward the pointers again...
+        inc de
+      djnz -
+      jp _Finish
+
+
+    _Finish:
 
     ld hl,MetaSpriteSize
     ld a,(NextFreeSprite) ; add the size of the processed metasprite

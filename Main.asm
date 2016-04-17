@@ -108,6 +108,7 @@
     .dw $0000                 ; Movement pattern table.
     .db 0                     ; Pattern timer.
     .db 0,0                   ; Delay counter and delay value.
+    .db %00000010             ; MetaSprite flags.
 
   GargoyleFlying:
     .dw $0700 Gargoyle1 $07ff Gargoyle2
@@ -122,6 +123,7 @@
     .dw Pattern2
     .db 0
     .db 2, 2
+    .db %00000001             ; Fixme - hard enable right mask.
 
   Zombie1InitString:
     .db 1

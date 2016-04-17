@@ -29,7 +29,9 @@
     ; 14    : Pattern timer.
     ; 15    : DelayCounter - counts from DelayValue to zero.
     ; 16    : DelayValue - how many frames to skip during each movement.
-    ; 17-63 : Unused
+    ; 17    : MetaSpriteFlags - uuuu tblr
+    ;           - enable top, bottom, left, right mask (for clipping).
+    ; 18-63 : Unused
 .ends
 
 ; -----------------------------------------------------------------------------
@@ -160,6 +162,7 @@
     ld h,(ix+4)
     ld a,(ix+1)
     ld b,(ix+2)
+    ld c,(ix+17)          ; The metasprite flags.
     call AddMetaSprite
   ret
 .ends
