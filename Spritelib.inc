@@ -8,6 +8,11 @@
 .equ ASCENDING 0
 .equ DESCENDING $ff
 
+; MetaSpriteFlags:
+.equ RIGHT_MASK   %0000001
+.equ LEFT_MASK    %0000010
+.equ NO_MASKS     %0000000
+
 .ramsection "Spritelib Variables" slot 3
   SpriteBufferY dsb 64
   SpriteBufferXC dsb 128

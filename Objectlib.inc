@@ -13,6 +13,7 @@
 .equ PATTERN           4  ; Object moves according to a pattern.
 ; NOTE: Be sure to align _MovementTable to these definitions!
 
+
 .ramsection "Objectlib Variables" slot 3
   ObjectAttributeTable dsb 16*OAT_ELEMENT_SIZE
     ; 0     : Status
@@ -29,8 +30,8 @@
     ; 14    : Pattern timer.
     ; 15    : DelayCounter - counts from DelayValue to zero.
     ; 16    : DelayValue - how many frames to skip during each movement.
-    ; 17    : MetaSpriteFlags - uuuu tblr
-    ;           - enable top, bottom, left, right mask (for clipping).
+    ; 17    : MetaSpriteFlags - uuuu uulr
+    ;           - enable left or right mask (for horizontal clipping).
     ; 18-63 : Unused
 .ends
 
@@ -167,6 +168,17 @@
   ret
 .ends
 
+
+; -----------------------------------------------------------------------------
+.section "HandleMask" free
+; -----------------------------------------------------------------------------
+  ; Check object's mask status, and toggle mask depending on object's
+  ; horizontal position.
+  HandleMask:
+
+  ret
+.ends
+
 ; -----------------------------------------------------------------------------
 .section "ObjectFrame" free
 ; -----------------------------------------------------------------------------
@@ -178,6 +190,7 @@
       ld a,(ix+0)           ; Get the status byte.
       or a                  ; Zero means object is idle.
       jp z,+                ; If idle, then skip forward, else process object.
+        call HandleMask
         call AnimateObject
         call MoveObject
 
