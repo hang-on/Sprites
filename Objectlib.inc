@@ -22,6 +22,8 @@
 .equ OAT_DELAY_COUNTER 15
 .equ OAT_DELAY_VALUE 16
 .equ OAT_META_SPRITE_FLAGS 17
+.equ OAT_DESTROY_OBJECT 18
+
 
 ; Definitions for object's movement type.
 .equ STATIC            0  ; Ignore vertical and horizontal speeds. Stay still.
@@ -30,6 +32,14 @@
 .equ SIMPLE_MOVEMENT   3  ; Object moves by values in v- and h-speed.
 .equ PATTERN           4  ; Object moves according to a pattern.
 ; NOTE: Be sure to align _MovementTable to these definitions!
+
+; Control characters in the pattern data.
+.equ PATTERN_JUMP     $aa ; The following word is pointer to pattern (LSB).
+.equ SELF_DESTRUCT    $ab ; Make the object self destruct at this point.
+.equ SET_DELAY        $ac ; Set the delay (the following byte).
+
+
+
 
 
 .ramsection "Objectlib Variables" slot 3
@@ -50,7 +60,8 @@
     ; 16    : DelayValue - how many frames to skip during each movement.
     ; 17    : MetaSpriteFlags - uuuu uulr
     ;           - enable left or right mask (for horizontal clipping).
-    ; 18-63 : Unused
+    ; 18    : Destroy object
+    ; 19-63 : Unused
 .ends
 
 ; -----------------------------------------------------------------------------
@@ -136,12 +147,12 @@
 .ends
 
 ; -----------------------------------------------------------------------------
-.section "DestroyObject" free
+.section "DestroyObjectUsingHandle" free
 ; -----------------------------------------------------------------------------
   ; Detroys an object.
   ; Entry: A = Handle of object to destroy.
   ; Uses: AF,B,HL
-  DestroyObject:
+  DestroyObjectUsingHandle:
     ld hl,ObjectAttributeTable
     cp 0
     jp z,+
@@ -189,6 +200,20 @@
 
 
 ; -----------------------------------------------------------------------------
+.section "HandleDestruction" free
+; -----------------------------------------------------------------------------
+  HandleSelfDestruct:
+  ; Destroy object if OAT_DESTROY_OBJECT != 0.
+  ; Entry: IX = OAT element.
+  ld a,(ix+OAT_DESTROY_OBJECT)
+  or a
+  ret z
+  xor a
+  ld (ix+OAT_STATUS),a
+  ret
+.ends
+
+; -----------------------------------------------------------------------------
 .section "HandleMask" free
 ; -----------------------------------------------------------------------------
   ; Check object's mask status, and toggle mask depending on object's
@@ -227,31 +252,6 @@
     sub 64
     ret c
     res 0,(ix+OAT_META_SPRITE_FLAGS)
-  ret
-.ends
-
-; -----------------------------------------------------------------------------
-.section "ObjectFrame" free
-; -----------------------------------------------------------------------------
-  ; Frame-by-frame housekeeping of the objects.
-  ; Assume that all registers are used.
-  ObjectFrame:
-    ld ix,ObjectAttributeTable
-    .rept MAX_OBJECTS       ; Run through all OAT objects.
-      ld a,(ix+OAT_STATUS)  ; Get the status byte.
-      or a                  ; Zero means object is idle.
-      jp z,+                ; If idle, then skip forward, else process object.
-        call HandleMasks
-        call AnimateObject
-        call MoveObject
-
-      +:
-      ld de,OAT_ELEMENT_SIZE
-      add ix,de             ; Point to status byte of next object.
-    .endr                   ; Repeat to test and process all objects.
-
-    ; Finish by drawing the objects as they look by now.
-    call DrawObjects
   ret
 .ends
 
@@ -356,11 +356,22 @@
     _PatternMovement:
       ld a,(ix+OAT_PATTERN_TIMER)
       or a
-      jp nz,+
+      jp nz,++
         ld l,(ix+OAT_MOVEMENT_PATTERN_POINTER_LSB)
         ld h,(ix+OAT_MOVEMENT_PATTERN_POINTER_LSB+1)
         ld a,(hl)       ; Get vertical speed from pattern table.
-        cp $aa          ; If vertical speed is $aa, it means that we should
+
+        ; Check for the presence of control characters, and branch accordingly.
+        cp SELF_DESTRUCT
+        jp nz,+
+          ld (ix+OAT_DESTROY_OBJECT),a ; By loading a non-zero value here, we
+          jp _EndSwitch                ; effectively destroy the object.
+        +:
+
+        cp SET_DELAY
+        jp z,_SetDelay
+
+        cp PATTERN_JUMP ; If vertical speed is $aa, it means that we should
         call z,_LoadPatternPointer ; load a new value into the pattern pointer.
 
         ld (ix+OAT_VERTICAL_SPEED),a
@@ -373,7 +384,7 @@
         inc hl
         ld (ix+OAT_MOVEMENT_PATTERN_POINTER_LSB),l
         ld (ix+OAT_MOVEMENT_PATTERN_POINTER_LSB+1),h
-      +:
+      ++:
       dec (ix+OAT_PATTERN_TIMER)
 
       ; Simply apply the vertical and horizontal speed to y and x...
@@ -403,5 +414,43 @@
     ld l,(ix+OAT_MOVEMENT_PATTERN_POINTER_LSB)
     ld h,(ix+OAT_MOVEMENT_PATTERN_POINTER_LSB+1)
     ld a,(hl)       ; Leave with vertical speed in A...
+  ret
+
+  _SetDelay:
+    ; Entry: HL + 1 will be the new delay counter and value
+    ; Exit: Pattern pointer for this object updated to next entry.
+    inc hl
+    ld a,(hl)
+    ld (ix+OAT_DELAY_VALUE),a
+    ld (ix+OAT_DELAY_COUNTER),A
+    inc hl
+    ld (ix+OAT_MOVEMENT_PATTERN_POINTER_LSB),l
+    ld (ix+OAT_MOVEMENT_PATTERN_POINTER_LSB+1),h
+  jp _EndSwitch
+.ends
+
+; -----------------------------------------------------------------------------
+.section "ObjectFrame" free
+; -----------------------------------------------------------------------------
+  ; Frame-by-frame housekeeping of the objects.
+  ; Assume that all registers are used.
+  ObjectFrame:
+    ld ix,ObjectAttributeTable
+    .rept MAX_OBJECTS       ; Run through all OAT objects.
+      ld a,(ix+OAT_STATUS)  ; Get the status byte.
+      or a                  ; Zero means object is idle.
+      jp z,+                ; If idle, then skip forward, else process object.
+        call HandleSelfDestruct
+        call HandleMasks
+        call AnimateObject
+        call MoveObject
+
+      +:
+      ld de,OAT_ELEMENT_SIZE
+      add ix,de             ; Point to status byte of next object.
+    .endr                   ; Repeat to test and process all objects.
+
+    ; Finish by drawing the objects as they look by now.
+    call DrawObjects
   ret
 .ends

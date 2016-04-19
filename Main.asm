@@ -91,12 +91,21 @@
     .dw $2000 Swabby2 $20ff Swabby3 ; $ff (or non-zero value means loop).
 
   ; Movement patterns.
-  Pattern1: ; The chineese birds-men.
-    .db 0, -1, 70, 1, -1, 90, 0, 1, 175, $aa
-    .dw Pattern1              ; Loop back.
+  Pattern1: ; The chineese bird-men.
+    .db 0, -1, 70, 1, -1, 90, 0, 1, 175, SELF_DESTRUCT
+
   Pattern2: ; Classic sine-wave.
-    .db 1, -1, 32, -1, -1, 64, 1, -1, 32, $aa
+    .db 1, -1, 32, -1, -1, 64, 1, -1, 32, PATTERN_JUMP
     .dw Pattern2
+
+  Pattern3: ; The chineese bird-men, with delay change.
+    .db 0, -1, 70
+    .db SET_DELAY, 2
+    .db 1, -1, 90,
+    .db SET_DELAY, 1
+    .db 0, 1, 175
+    .db SELF_DESTRUCT
+
 
   SwabbyInitString:
     .db 1                     ; Initial status.
@@ -108,7 +117,8 @@
     .dw $0000                 ; Movement pattern table.
     .db 0                     ; Pattern timer.
     .db 0,0                   ; Delay counter and delay value.
-    .db NO_MASKS             ; MetaSprite flags.
+    .db NO_MASKS              ; MetaSprite flags.
+    .db 0                     ; Self destruct.
 
   GargoyleFlying:
     .dw $0700 Gargoyle1 $07ff Gargoyle2
@@ -117,13 +127,14 @@
     .db 1
     .db 50 16
     .dw Gargoyle1
-    .db PATTERN 2 2
+    .db PATTERN 1 1
     .dw GargoyleFlying
     .db 0 0
-    .dw Pattern2
+    .dw Pattern3
     .db 0
-    .db 2, 2
+    .db 3,3
     .db LEFT_MASK             ; Hard enable left mask.
+    .db 0
 
   Zombie1InitString:
     .db 1
@@ -217,9 +228,9 @@
       ld hl,SwabbyInitString
       call CreateObject
       ld (PlayerHandle),a
-      ;ld hl,GargoyleInitString
-      ;call CreateObject
-      ;ld (GargoyleHandle),a
+      ld hl,GargoyleInitString
+      call CreateObject
+      ld (GargoyleHandle),a
       jp _EndEvents
     _Event1:
       ;ld hl,Zombie1InitString
