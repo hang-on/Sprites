@@ -59,7 +59,6 @@
 0000:0c2a _Joystick2Controlled
 0000:0c69 _SimpleMovement
 0000:0c7e _PatternMovement
-0000:0c85 debug
 0000:0cbd _EndSwitch
 0000:0cbe _LoadPatternPointer
 0000:c4c6 FrameCounter

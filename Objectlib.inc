@@ -236,8 +236,8 @@
   ; Assume that all registers are used.
   ObjectFrame:
     ld ix,ObjectAttributeTable
-    .rept 16                ; Run through all 16 objects.
-      ld a,(ix+0)           ; Get the status byte.
+    .rept MAX_OBJECTS       ; Run through all OAT objects.
+      ld a,(ix+OAT_STATUS)  ; Get the status byte.
       or a                  ; Zero means object is idle.
       jp z,+                ; If idle, then skip forward, else process object.
         call HandleMasks
@@ -261,15 +261,15 @@
     ; Entry: IX = Base address of active OAT element.
 
     ; First handle delay.
-    ld a,(ix+16)            ; Get delay value (0 means no delay).
+    ld a,(ix+OAT_DELAY_VALUE)            ; Get delay value (0 means no delay).
     or a
     jp z,+
       ; Okay, delay is active...
-      dec (ix+15)
+      dec (ix+OAT_DELAY_COUNTER)
       ret nz
-      ld (ix+15),a          ; A still holds the delay value.
+      ld (ix+OAT_DELAY_COUNTER),a        ; A still holds the delay value.
     +:
-    ld a,(ix+5)
+    ld a,(ix+OAT_MOVEMENT)
     add a,a
     ld d,0
     ld e,a
@@ -353,36 +353,35 @@
     jp _EndSwitch
 
     _PatternMovement:
-      ld a,(ix+14)
+      ld a,(ix+OAT_PATTERN_TIMER)
       or a
       jp nz,+
-        debug:
-        ld l,(ix+12)
-        ld h,(ix+13)
+        ld l,(ix+OAT_MOVEMENT_PATTERN_POINTER_LSB)
+        ld h,(ix+OAT_MOVEMENT_PATTERN_POINTER_LSB+1)
         ld a,(hl)       ; Get vertical speed from pattern table.
         cp $aa          ; If vertical speed is $aa, it means that we should
         call z,_LoadPatternPointer ; load a new value into the pattern pointer.
 
-        ld (ix+6),a     ; Update object's vertical speed.
+        ld (ix+OAT_VERTICAL_SPEED),a
         inc hl
         ld a,(hl)       ; Get horizontal speed from pattern table.
-        ld (ix+7),a     ; Update object's horizontal speed.
+        ld (ix+OAT_HORIZONTAL_SPEED),a
         inc hl
         ld a,(hl)       ; Get pattern timer value
-        ld (ix+14),a    ; ... and set it.
+        ld (ix+OAT_PATTERN_TIMER),a
         inc hl
-        ld (ix+12),l    ; Update the pattern table pointer.
-        ld (ix+13),h
+        ld (ix+OAT_MOVEMENT_PATTERN_POINTER_LSB),l
+        ld (ix+OAT_MOVEMENT_PATTERN_POINTER_LSB+1),h
       +:
-      dec (ix+14)       ; Decrement the pattern timer.
+      dec (ix+OAT_PATTERN_TIMER)
 
       ; Simply apply the vertical and horizontal speed to y and x...
-      ld a,(ix+1)
-      add a,(ix+6)
-      ld (ix+1),a
-      ld a,(ix+2)
-      add a,(ix+7)
-      ld (ix+2),a
+      ld a,(ix+OAT_Y)
+      add a,(ix+OAT_VERTICAL_SPEED)
+      ld (ix+OAT_Y),a
+      ld a,(ix+OAT_X)
+      add a,(ix+OAT_HORIZONTAL_SPEED)
+      ld (ix+OAT_X),a
     jp _EndSwitch
 
     _EndSwitch:
@@ -396,12 +395,12 @@
     ; Exit:  A = vertical speed.
     inc hl
     ld a,(hl)
-    ld (ix+12),a
+    ld (ix+OAT_MOVEMENT_PATTERN_POINTER_LSB),a
     inc hl
     ld a,(hl)
-    ld (ix+13),a
-    ld l,(ix+12)
-    ld h,(ix+13)
+    ld (ix+OAT_MOVEMENT_PATTERN_POINTER_LSB+1),a
+    ld l,(ix+OAT_MOVEMENT_PATTERN_POINTER_LSB)
+    ld h,(ix+OAT_MOVEMENT_PATTERN_POINTER_LSB+1)
     ld a,(hl)       ; Leave with vertical speed in A...
   ret
 .ends
