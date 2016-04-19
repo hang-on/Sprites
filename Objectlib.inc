@@ -109,7 +109,7 @@
     ld ix,ObjectAttributeTable
     ld b,0
     -:
-      ld a,(ix+0)
+      ld a,(ix+OAT_STATUS)
       or a                  ; Zero means object is idle.
       jp nz,+
         call _LoadElement
@@ -165,8 +165,8 @@
   DrawObjects:
     call BeginMetaSprites
     ld ix,ObjectAttributeTable
-    .rept 16
-      ld a,(ix+0)
+    .rept MAX_OBJECTS
+      ld a,(ix+OAT_STATUS)
       or a                  ; Zero means object is idle.
       call nz,_DrawObject
       ld de,OAT_ELEMENT_SIZE
@@ -177,11 +177,11 @@
   _DrawObject:
     ; Entry: IX = Pointer to OAT element.
     ; Uses: AF,B,HL,IX
-    ld l,(ix+3)
-    ld h,(ix+4)
-    ld a,(ix+1)
-    ld b,(ix+2)
-    ld c,(ix+17)          ; The metasprite flags.
+    ld l,(ix+OAT_META_SPRITE_POINTER_LSB)
+    ld h,(ix+OAT_META_SPRITE_POINTER_LSB+1)
+    ld a,(ix+OAT_Y)
+    ld b,(ix+OAT_X)
+    ld c,(ix+OAT_META_SPRITE_FLAGS)
     call AddMetaSprite
   ret
 .ends
@@ -194,38 +194,38 @@
   ; horizontal position and mask status.
   ; Entry: IX = OAT element.
   HandleMasks:
-    bit 1,(ix+17)           ; Is left mask on?
+    bit 1,(ix+OAT_META_SPRITE_FLAGS)           ; Is left mask on?
     jp nz,_HandleLeftMask
-    bit 0,(ix+17)           ; Is right mask on?
+    bit 0,(ix+OAT_META_SPRITE_FLAGS)           ; Is right mask on?
     jp nz,_HandleRightMask
     ; else fall through to 'no masks on' below...
-    ld a,(ix+2)
+    ld a,(ix+OAT_X)
     cp 64
     jp nc,+
-      set 0,(ix+17)
+      set 0,(ix+OAT_META_SPRITE_FLAGS)
       ret
     +:
     cp 191
     ret c
-    set 1,(ix+17)
+    set 1,(ix+OAT_META_SPRITE_FLAGS)
   ret
 
   _HandleLeftMask:
-    ld a,(ix+2)
+    ld a,(ix+OAT_X)
     cp 64
     ret c
     sub 191
     ret nc
-    res 1,(ix+17)           ; Player in middle zone, reset left mask.
+    res 1,(ix+OAT_META_SPRITE_FLAGS)
   ret
 
   _HandleRightMask:
-    ld a,(ix+2)
+    ld a,(ix+OAT_X)
     cp 191
     ret nc
     sub 64
     ret c
-    res 0,(ix+17)
+    res 0,(ix+OAT_META_SPRITE_FLAGS)
   ret
 .ends
 
