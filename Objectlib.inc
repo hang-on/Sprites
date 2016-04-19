@@ -2,8 +2,26 @@
 ;                           OBJECT LIBRARY
 ; *****************************************************************************
 ; Note: It builds on top of the Spritelib.
+
+; Object Attribute Table definitions.
 .equ OAT_ELEMENT_SIZE 64
 .equ MAX_OBJECTS 16
+
+.equ OAT_STATUS 0
+.equ OAT_Y 1
+.equ OAT_X 2
+.equ OAT_META_SPRITE_POINTER_LSB 3
+.equ OAT_MOVEMENT 5
+.equ OAT_VERTICAL_SPEED 6
+.equ OAT_HORIZONTAL_SPEED 7
+.equ OAT_ANIM_TABLE_BASE_ADDRESS_LSB 8
+.equ OAT_ANIM_TABLE_INDEX 10
+.equ OAT_ANIM_TIMER 11
+.equ OAT_MOVEMENT_PATTERN_POINTER_LSB 12
+.equ OAT_PATTERN_TIMER 14
+.equ OAT_DELAY_COUNTER 15
+.equ OAT_DELAY_VALUE 16
+.equ OAT_META_SPRITE_FLAGS 17
 
 ; Definitions for object's movement type.
 .equ STATIC            0  ; Ignore vertical and horizontal speeds. Stay still.
@@ -43,38 +61,38 @@
   ; Entry: IX = Base address of OAT element.
   ; Uses: AF, DE, HL, IX
   AnimateObject:
-    ld a,(ix+11)
+    ld a,(ix+OAT_ANIM_TIMER)
     or a                  ; Zero: Time to load a new meta sprite pointer.
     call z,_LoadMetaSpriterPointer
-    dec (ix+11)
+    dec (ix+OAT_ANIM_TIMER)
   ret
 
   _LoadMetaSpriterPointer:
     ; Entry: IX = Pointer to OAT element.
-    ld a,(ix+10)      ; Get animation table index.
+    ld a,(ix+OAT_ANIM_TABLE_INDEX)      ; Get animation table index.
     add a,a
     add a,a           ; Times 4.
     ld d,0
     ld e,a
-    ld l,(ix+8)
-    ld h,(ix+9)
+    ld l,(ix+OAT_ANIM_TABLE_BASE_ADDRESS_LSB)
+    ld h,(ix+OAT_ANIM_TABLE_BASE_ADDRESS_LSB+1)
     add hl,de
     ld a,(hl)         ; Read control byte.
     or a
     jp z,+           ; Zero means forward to next frame.
       ld a,-1        ; .. So it wil be incremented to zero below.
-      ld (ix+10),a
+      ld (ix+OAT_ANIM_TABLE_INDEX),a
     +:
       inc hl
       ld a,(hl)       ; Read new timer value from table.
-      ld (ix+11),a    ; Store it in OAT.
+      ld (ix+OAT_ANIM_TIMER),a    ; Store it in OAT.
       inc hl
       ld a,(hl)
-      ld (ix+3),a
+      ld (ix+OAT_META_SPRITE_POINTER_LSB),a
       inc hl
       ld a,(hl)
-      ld (ix+4),a
-      inc (ix+10)     ; Increment the animation table index.
+      ld (ix+OAT_META_SPRITE_POINTER_LSB+1),a
+      inc (ix+OAT_ANIM_TABLE_INDEX)     ; Increment the animation table index.
   ret
 .ends
 
