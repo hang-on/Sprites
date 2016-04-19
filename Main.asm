@@ -217,9 +217,9 @@
       ld hl,SwabbyInitString
       call CreateObject
       ld (PlayerHandle),a
-      ld hl,GargoyleInitString
-      call CreateObject
-      ld (GargoyleHandle),a
+      ;ld hl,GargoyleInitString
+      ;call CreateObject
+      ;ld (GargoyleHandle),a
       jp _EndEvents
     _Event1:
       ;ld hl,Zombie1InitString

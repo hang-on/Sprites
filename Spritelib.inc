@@ -316,11 +316,29 @@
 .section "FinalizeMetaSprites" free
 ; -----------------------------------------------------------------------------
   FinalizeMetaSprites:
-    ; Experimental:
+    ; Anti-flickering measure:
     ; Go through all x positions in the table (active sprites only). If x = 0
     ; (sprite is under the blanked column 0-7), let its y-pos be $e0, thus it
     ; will be moved away from the active display, and not count towards sprite
     ; on scanline limits.
+    ld a,(NextFreeSprite)
+    or a
+    ret z
 
+    ld de,SpriteBufferXC
+    ld hl,SpriteBufferY
+    ld a,(NextFreeSprite)
+    ld b,a
+    ld c,$e0
+    -:
+      ld a,(de)
+      or a
+      jp nz,+
+        ld (hl),c
+      +:
+      inc de
+      inc de
+      inc hl
+    djnz -
   ret
 .ends
