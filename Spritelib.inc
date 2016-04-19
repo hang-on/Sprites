@@ -305,10 +305,22 @@
 
 
     _Finish:
-
     ld hl,MetaSpriteSize
     ld a,(NextFreeSprite) ; add the size of the processed metasprite
     add a,(hl)
     ld (NextFreeSprite),a
+  ret
+.ends
+
+; -----------------------------------------------------------------------------
+.section "FinalizeMetaSprites" free
+; -----------------------------------------------------------------------------
+  FinalizeMetaSprites:
+    ; Experimental:
+    ; Go through all x positions in the table (active sprites only). If x = 0
+    ; (sprite is under the blanked column 0-7), let its y-pos be $e0, thus it
+    ; will be moved away from the active display, and not count towards sprite
+    ; on scanline limits.
+
   ret
 .ends

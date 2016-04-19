@@ -172,6 +172,7 @@
       ld de,OAT_ELEMENT_SIZE
       add ix,de
     .endr
+    call FinalizeMetaSprites
   ret
 
   _DrawObject:
