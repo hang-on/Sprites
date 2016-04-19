@@ -100,7 +100,7 @@
 
   SwabbyInitString:
     .db 1                     ; Initial status.
-    .db 20 40                 ; Start Y and start X.
+    .db 20 100                ; Start Y and start X.
     .dw Swabby1               ; MetaSpritePointer.
     .db JOYSTICK_1 2 2        ; Movement type, vertical and horizontal speed.
     .dw SwabbyFlying          ; Animation table base address.
@@ -217,9 +217,9 @@
       ld hl,SwabbyInitString
       call CreateObject
       ld (PlayerHandle),a
-      ld hl,GargoyleInitString
-      call CreateObject
-      ld (GargoyleHandle),a
+      ;ld hl,GargoyleInitString
+      ;call CreateObject
+      ;ld (GargoyleHandle),a
       jp _EndEvents
     _Event1:
       ;ld hl,Zombie1InitString

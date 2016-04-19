@@ -173,9 +173,41 @@
 .section "HandleMask" free
 ; -----------------------------------------------------------------------------
   ; Check object's mask status, and toggle mask depending on object's
-  ; horizontal position.
-  HandleMask:
+  ; horizontal position and mask status.
+  ; Entry: IX = OAT element.
+  HandleMasks:
+    bit 1,(ix+17)           ; Is left mask on?
+    jp nz,_HandleLeftMask
+    bit 0,(ix+17)           ; Is right mask on?
+    jp nz,_HandleRightMask
+    ; else fall through to 'no masks on' below...
+    ld a,(ix+2)
+    cp 64
+    jp nc,+
+      set 0,(ix+17)
+      ret
+    +:
+    cp 191
+    ret c
+    set 1,(ix+17)
+  ret
 
+  _HandleLeftMask:
+    ld a,(ix+2)
+    cp 64
+    ret c
+    sub 191
+    ret nc
+    res 1,(ix+17)           ; Player in middle zone, reset left mask.
+  ret
+
+  _HandleRightMask:
+    ld a,(ix+2)
+    cp 191
+    ret nc
+    sub 64
+    ret c
+    res 0,(ix+17)
   ret
 .ends
 
@@ -190,7 +222,7 @@
       ld a,(ix+0)           ; Get the status byte.
       or a                  ; Zero means object is idle.
       jp z,+                ; If idle, then skip forward, else process object.
-        call HandleMask
+        call HandleMasks
         call AnimateObject
         call MoveObject
 
