@@ -95,8 +95,7 @@
     .db 0, -1, 70, 1, -1, 90, 0, 1, 175, SELF_DESTRUCT
 
   Pattern2: ; Classic sine-wave.
-    .db 1, -1, 32, -1, -1, 64, 1, -1, 32, PATTERN_JUMP
-    .dw Pattern2
+    .db 1, -1, 32, -1, -1, 64, 1, -1, 32, SELF_DESTRUCT
 
   Pattern3: ; The chineese bird-men, with delay change.
     .db 0, -1, 70
@@ -104,6 +103,14 @@
     .db 1, -1, 90,
     .db SET_DELAY, 1
     .db 0, 1, 175
+    .db SELF_DESTRUCT
+
+  Pattern4: ; Neo sine-wave.
+    .db 2, -1, 16, -2, -1, 32, 2, -1, 16
+    .db 2, -1, 16, -2, -1, 32, 2, -1, 16
+    .db 2, -1, 16, -2, -1, 32, 2, -1, 16
+    .db 2, -1, 16, -2, -1, 32, 2, -1, 16
+    .db 2, -1, 24
     .db SELF_DESTRUCT
 
 
@@ -125,12 +132,12 @@
 
   GargoyleInitString:
     .db 1
-    .db 50 16
+    .db 64 16
     .dw Gargoyle1
     .db PATTERN 1 1
     .dw GargoyleFlying
     .db 0 0
-    .dw Pattern3
+    .dw Pattern4
     .db 0
     .db 3,3
     .db LEFT_MASK             ; Hard enable left mask.
@@ -155,6 +162,16 @@
     ld b,0
     call SetRegister
 
+    ; Put Swabby on the screen.
+    ld hl,SwabbyInitString
+    call CreateObject
+    ld (PlayerHandle),a
+
+    ld a,75
+    ld b,6
+    ld hl,GargoyleInitString
+    call LoadWaveMaker
+
     ld a,ENABLE_DISPLAY_ENABLE_FRAME_INTERRUPTS_NORMAL_SPRITES
     ld b,1
     call SetRegister
@@ -167,13 +184,9 @@
     call AwaitFrameInterrupt
     call LoadSAT
 
-    ld a,(FrameCounter)
-    inc a
-    ld (FrameCounter),a
-    call z,_MakeEvent
-
     call GetInputPorts
 
+    call RunWaveMaker
     call ObjectFrame
 
   jp Main
@@ -198,47 +211,48 @@
       pop bc
     djnz -                ; Process all elements in BatchLoadTable
   ret
+.ends
 
-  _MakeEvent:
-    ld a,(NextEventIndex)
-    add a,a
-    ld d,0
-    ld e,a
-    ld hl,_EventTable
-    add hl,de
-    ld a,(hl)
-    inc hl
-    ld h,(hl)
-    ld l,a
-    jp (hl)
-    ; Refer to event table below.
-    ; .... when the event is over, resume from _EndEvents.
-  _EndEvents:
-    ld a,(NextEventIndex)
-    cp ((_EventTableEnd-_EventTable)/2)-1
-    ret z
-    inc a
-    ld (NextEventIndex),a
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+.ramsection "WaveMaker variables" slot 3
+  WAMAKCue db             ; How many enemies left in current wave?
+  WAMAKInterval db        ; Frames between enemies.
+  WAMAKTimer db           ; Counting frames from WAMAKInterval to zero.
+  WAMAKPointer dw         ; When WAMAKTimer depletes, then make this object.
+.ends
+; -----------------------------------------------------------------------------
+.section "Wavemaker (WAMAK)" free
+; -----------------------------------------------------------------------------
+  RunWaveMaker:
+    ld a,(WAMAKCue)
+    or a
+    ret z                 ; Exit if no more enemies are waiting in the cue.
+
+    ld a,(WAMAKTimer)
+    dec a
+    ld (WAMAKTimer),a
+    or a
+    call z,_GenerateEnemy
   ret
 
-  _EventTable:
-    .dw _Event0 _Event1 _Event2
-  _EventTableEnd:
-    _Event0:
-      ld hl,SwabbyInitString
-      call CreateObject
-      ld (PlayerHandle),a
-      ld hl,GargoyleInitString
-      call CreateObject
-      ld (GargoyleHandle),a
-      jp _EndEvents
-    _Event1:
-      ;ld hl,Zombie1InitString
-      ;call CreateObject
-      ;ld (Zombie1Handle),a
-      jp _EndEvents
-    _Event2:
-      nop ; Do nothing... (event handler loops on this last element).
-      jp _EndEvents
+  _GenerateEnemy:
+    ld hl,(WAMAKPointer)
+    call CreateObject
+    ld a,(WAMAKInterval)
+    ld (WAMAKTimer),a
+    ld hl,WAMAKCue
+    dec (hl)
+  ret
+
+LoadWaveMaker:
+  ; Procedure: Load the WAMAK variables.
+  ; Entry: A = Interval between enemies in this wave.
+  ;        B = Number of enemies in this wave.
+  ;        HL = Pointer to enemy object init string.
+  ld (WAMAKInterval),a
+  ld a,b
+  ld (WAMAKCue),a
+  ld (WAMAKPointer),hl
+ret
 
 .ends
