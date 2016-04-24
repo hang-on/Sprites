@@ -167,10 +167,6 @@
     .dw 100                   ; Timer (count down to next wave).
     .db 75, 6                 ; Interval between enemies in wave, number of en.
     .dw GargoyleInitString    ; Init string for the enemies.
-    .dw 1000                   ; Timer (count down to next wave).
-    .db 200, 2                ; Interval between enemies in wave, number of en.
-    .dw GargoyleInitString    ; Init string for the enemies.
-
     ; ----
     .dw $ffff                 ; End of wavescript marker.
 
@@ -299,6 +295,9 @@
 .section "Wavescript" free
 ; -----------------------------------------------------------------------------
   InitializeWaveScript:
+    ; Load the WaveScriptTimer and WaveScriptPointer variables with values
+    ; from a wavescript pointed to by HL. Set WaveScriptStatus to non-zero to
+    ; activate it.
     ; Entry: HL = Pointer to wave script
     ld a,(hl)
     inc hl
@@ -312,11 +311,15 @@
   ret
 
   ProcessWaveScript:
+    ; Frame-by-frame processing of the wavescript.
     ld a,(WaveScriptStatus)       ; If it is not active, then bye bye...
     or a
     ret z
 
-    ; Decrement timer.
+    ; Decrement timer (word-sized). If timer is depleted then load data from
+    ; the currently active wavescript and use it to call LoadWaveMaker. If
+    ; $ffff (end-of-wavescript) is encountered, then set WaveScriptStatus to
+    ; zero to disable it.
     ld a,(WaveScriptTimer)
     dec a
     ld (WaveScriptTimer),a
@@ -329,6 +332,7 @@
   ret
 
   _TimerDepleted:
+    ; Fetch values from wavescript and set up a call to LoadWaveMaker.
     ld hl,(WaveScriptPointer)
     ld a,(hl)
     inc hl
@@ -341,6 +345,9 @@
     ex de,hl
     call LoadWaveMaker
     ex de,hl
+
+    ; Load the WaveScriptTimer with the next value, and update the
+    ; WaveScriptPointer as well.
     inc hl
     ld a,(hl)
     ld (WaveScriptTimer),a
@@ -350,6 +357,7 @@
     inc hl
     ld (WaveScriptPointer),hl
 
+    ; Check if end-of-wavescript was encountered.
     ld a,(WaveScriptTimer)
     cp $ff
     ret nz
