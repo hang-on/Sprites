@@ -113,6 +113,20 @@
     .db 2, -1, 24
     .db SELF_DESTRUCT
 
+  Pattern5: ; Slope.
+    .db SET_DELAY 2
+    .rept 40
+      .db 0, -1, 5,
+      .db 1, -1, 1,
+    .endr
+    .db -1, 1, 20
+    .db SET_DELAY 3
+    .db -2, 1,20
+    .db SET_DELAY 0
+    .db -1,1,140
+    .db SELF_DESTRUCT
+
+
 
   SwabbyInitString:
     .db 1                     ; Initial status.
@@ -132,7 +146,7 @@
 
   GargoyleInitString:
     .db 1
-    .db 64 16
+    .db 94 16
     .dw Gargoyle1
     .db PATTERN 1 1
     .dw GargoyleFlying
@@ -148,6 +162,18 @@
     .db 120 120
     .dw Zombie1
     .db STATIC, 0, -1
+
+  WaveScript1:
+    .dw 100                   ; Timer (count down to next wave).
+    .db 75, 6                 ; Interval between enemies in wave, number of en.
+    .dw GargoyleInitString    ; Init string for the enemies.
+    .dw 1000                   ; Timer (count down to next wave).
+    .db 200, 2                ; Interval between enemies in wave, number of en.
+    .dw GargoyleInitString    ; Init string for the enemies.
+
+    ; ----
+    .dw $ffff                 ; End of wavescript marker.
+
 
   SetupMain:
     ld a,0
@@ -167,10 +193,14 @@
     call CreateObject
     ld (PlayerHandle),a
 
-    ld a,75
-    ld b,6
-    ld hl,GargoyleInitString
-    call LoadWaveMaker
+    ; FIXME: Replace with wavescript init.
+    ;ld a,75
+    ;ld b,6
+    ;ld hl,GargoyleInitString
+    ;call LoadWaveMaker
+
+    ld hl,WaveScript1
+    call InitializeWaveScript
 
     ld a,ENABLE_DISPLAY_ENABLE_FRAME_INTERRUPTS_NORMAL_SPRITES
     ld b,1
@@ -186,6 +216,7 @@
 
     call GetInputPorts
 
+    call ProcessWaveScript
     call RunWaveMaker
     call ObjectFrame
 
@@ -244,15 +275,88 @@
     dec (hl)
   ret
 
-LoadWaveMaker:
-  ; Procedure: Load the WAMAK variables.
-  ; Entry: A = Interval between enemies in this wave.
-  ;        B = Number of enemies in this wave.
-  ;        HL = Pointer to enemy object init string.
-  ld (WAMAKInterval),a
-  ld a,b
-  ld (WAMAKCue),a
-  ld (WAMAKPointer),hl
-ret
+  LoadWaveMaker:
+    ; Procedure: Load the WAMAK variables.
+    ; Entry: A = Interval between enemies in this wave.
+    ;        B = Number of enemies in this wave.
+    ;        HL = Pointer to enemy object init string.
+    ; Cannot use DE!
+    ld (WAMAKInterval),a
+    ld a,b
+    ld (WAMAKCue),a
+    ld (WAMAKPointer),hl
+  ret
+.ends
 
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+.ramsection "WaveScript variables" slot 3
+  WaveScriptStatus db
+  WaveScriptTimer dw
+  WaveScriptPointer dw
+.ends
+; -----------------------------------------------------------------------------
+.section "Wavescript" free
+; -----------------------------------------------------------------------------
+  InitializeWaveScript:
+    ; Entry: HL = Pointer to wave script
+    ld a,(hl)
+    inc hl
+    ld d,(hl)
+    ld e,a
+    inc hl
+    ld (WaveScriptTimer),de
+    ld (WaveScriptPointer),hl
+    ld a,1
+    ld (WaveScriptStatus),a       ; Activate the wavescript handler.
+  ret
+
+  ProcessWaveScript:
+    ld a,(WaveScriptStatus)       ; If it is not active, then bye bye...
+    or a
+    ret z
+
+    ; Decrement timer.
+    ld a,(WaveScriptTimer)
+    dec a
+    ld (WaveScriptTimer),a
+    ret nz
+    ld a,(WaveScriptTimer+1)
+    or a
+    jp z,_TimerDepleted
+    dec a
+    ld (WaveScriptTimer+1),a
+  ret
+
+  _TimerDepleted:
+    ld hl,(WaveScriptPointer)
+    ld a,(hl)
+    inc hl
+    ld b,(hl)
+
+    inc hl
+    ld e,(hl)
+    inc hl
+    ld d,(hl)
+    ex de,hl
+    call LoadWaveMaker
+    ex de,hl
+    inc hl
+    ld a,(hl)
+    ld (WaveScriptTimer),a
+    inc hl
+    ld a,(hl)
+    ld (WaveScriptTimer+1),a
+    inc hl
+    ld (WaveScriptPointer),hl
+
+    ld a,(WaveScriptTimer)
+    cp $ff
+    ret nz
+    ld a,(WaveScriptTimer+1)
+    cp $ff
+    ret nz
+    xor a
+    ld (WaveScriptStatus),a
+  ret
 .ends
