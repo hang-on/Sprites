@@ -126,7 +126,10 @@
     .db -1,1,140
     .db SELF_DESTRUCT
 
-
+  Pattern6: ; Go straight left...
+    .db SET_DELAY 4
+    .db 0,-1,250
+    .db SELF_DESTRUCT
 
   SwabbyInitString:
     .db 1                     ; Initial status.
@@ -157,16 +160,29 @@
     .db LEFT_MASK             ; Hard enable left mask.
     .db 0
 
-  Zombie1InitString:
+  ZombieHeadBanging:
+    .dw $2f00 Zombie1 $2fff Zombie2
+
+  ZombieInitString:
     .db 1
-    .db 120 120
+    .db 160 16
     .dw Zombie1
-    .db STATIC, 0, -1
+    .db PATTERN, 0, -1
+    .dw ZombieHeadBanging
+    .db 0,0
+    .dw Pattern6
+    .db 0
+    .db 4,4
+    .db LEFT_MASK
+    .db 0
 
   WaveScript1:
-    .dw 100                   ; Timer (count down to next wave).
-    .db 75, 6                 ; Interval between enemies in wave, number of en.
+    .dw 10                    ; Timer (count down to next wave).
+    .db 70, 4                 ; Interval between enemies in wave, number of en.
     .dw GargoyleInitString    ; Init string for the enemies.
+    .dw 600
+    .db 0, 1
+    .dw ZombieInitString
     ; ----
     .dw $ffff                 ; End of wavescript marker.
 
@@ -188,12 +204,6 @@
     ld hl,SwabbyInitString
     call CreateObject
     ld (PlayerHandle),a
-
-    ; FIXME: Replace with wavescript init.
-    ;ld a,75
-    ;ld b,6
-    ;ld hl,GargoyleInitString
-    ;call LoadWaveMaker
 
     ld hl,WaveScript1
     call InitializeWaveScript
