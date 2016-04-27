@@ -172,7 +172,7 @@
     .db 0,0
     .dw Pattern6
     .db 0
-    .db 4,4
+    .db 1,1
     .db LEFT_MASK
     .db 0
 
